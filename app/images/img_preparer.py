@@ -33,6 +33,9 @@ class ImagesPreparer(object):
                     self.cropper.crop_image_randomly(image_id, original_image, train_mask, VALIDATION_INPUT_DATA_PATH, data_set_size)
                 else:
                     self.cropper.crop_image_randomly(image_id, original_image, train_mask, TRAIN_INPUT_DATA_PATH, data_set_size)
+                    if self.cropper.total_objects_num == 0:
+                        self.cropper.total_objects_num = 1
+                    print(self.cropper.total_objects_num, "  ", self.cropper.total_objects_ratio, "  ", (self.cropper.total_objects_ratio / self.cropper.total_objects_num))
 
     def __load_grid_sizes(self, image_id):
         for _im_id, _x, _y in csv.reader(open(GRID_SIZES_PATH)):

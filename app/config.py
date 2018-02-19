@@ -10,9 +10,11 @@ TEST_INPUT_DATA_PATH = "../data/three_band/test/"
 # ----- data preparation
 GRID_SIZES_PATH = "../data/grid_sizes/grid_sizes.csv"
 TRAIN_POLYGONS_PATH = "../data/train_wkt_v4/train_wkt_v4.csv"
-BUILDINGS_DATA_PATH = "../data/three_band/buildings/"
+BUILDINGS_DATA_PATH = "../data/three_band/all images/"
 
 
 # ----- images
 IMAGE_SIZE = 144
 IMAGE_FORMAT = ".tif"
+
+PREDICTION_IMAGE_SIZE = 100
