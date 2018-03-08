@@ -3,23 +3,22 @@ import shutil
 
 import numpy as np
 import tifffile as tiff
-import matplotlib.pyplot as plt
 
-from app.images.img_cropper import ImagesCropper, IMAGE_FORMAT, IMAGE_SIZE, PREDICTION_IMAGE_SIZE
-from app.neuralnetwork import NeuralNetwork
+from app.config.main_config import PREDICTION_IMAGE_SIZE, IMAGE_SIZE, IMAGE_FORMAT
+from app.net.neuralnetwork import NeuralNetwork
+from app.preparation.img_cropper import ImagesCropper
 
 
-class ImagePrediction(object):
+class ImagePredictor(object):
 
     def __init__(self, prediction_weights):
         self.cropper = ImagesCropper()
         self.net = NeuralNetwork()
         self.prediction_weights = prediction_weights
-        pass
 
-    def predict_image_tta(self, image_path):
-        image = tiff.imread(image_path).transpose([1, 2, 0])
-
+    # predict image mask according predictions of image and rotated image
+    def predict_image_mask_tta(self, image_path):
+        image = tiff.imread(image_path)#.transpose([1, 2, 0])
         res_img = self.__predict(image)
 
         rot_img = np.rot90(image, 1)
@@ -30,15 +29,17 @@ class ImagePrediction(object):
         # b = newar > 3
         # newar = b.astype(int)
 
-        tiff.imshow(newar)
-        plt.show()
+        # tiff.imshow(newar)
+        # plt.show()
+        return newar
 
-    def predict_image(self, image_path):
-        image = tiff.imread(image_path).transpose([1, 2, 0])
+    def predict_image_mask(self, image_path):
+        image = tiff.imread(image_path)#.transpose([1, 2, 0])
         res_img = self.__predict(image)
 
-        tiff.imshow(res_img)
-        plt.show()
+        # tiff.imshow(res_img)
+        # plt.show()
+        return res_img
 
     # predicts mask for image according given prediction_weights
     def __predict(self, image):
@@ -127,25 +128,6 @@ class ImagePrediction(object):
             y_border += shift_step
         return dataset
 
-    def __concat_images(self, image, directory):
-        x_len = image.shape[1]
-        y_len = image.shape[0]
-        full_image = []
-        x_border = 0
-        while x_border <= x_len - IMAGE_SIZE:
-            y_border = 0
-            images = []
-            while y_border <= y_len - IMAGE_SIZE:
-                img = tiff.imread(directory + "img___x={}, y={}{}".format(x_border, y_border, IMAGE_FORMAT))
-                images.append(img)
-                y_border += IMAGE_SIZE
-            x_concat = np.concatenate(images, axis=1)
-            full_image.append(x_concat)
-            x_border += IMAGE_SIZE
-
-        res = np.concatenate(full_image, axis=0)
-        return res
-
     def __concat_predictions(self, image, predictions, shift_step=IMAGE_SIZE):
         x_len = image.shape[1]
         y_len = image.shape[0]
@@ -165,6 +147,25 @@ class ImagePrediction(object):
             x_concat = np.concatenate(images, axis=1)
             full_image.append(x_concat)
             y_border += shift_step
+
+        res = np.concatenate(full_image, axis=0)
+        return res
+
+    def __concat_images(self, image, directory):
+        x_len = image.shape[1]
+        y_len = image.shape[0]
+        full_image = []
+        x_border = 0
+        while x_border <= x_len - IMAGE_SIZE:
+            y_border = 0
+            images = []
+            while y_border <= y_len - IMAGE_SIZE:
+                img = tiff.imread(directory + "img___x={}, y={}{}".format(x_border, y_border, IMAGE_FORMAT))
+                images.append(img)
+                y_border += IMAGE_SIZE
+            x_concat = np.concatenate(images, axis=1)
+            full_image.append(x_concat)
+            x_border += IMAGE_SIZE
 
         res = np.concatenate(full_image, axis=0)
         return res

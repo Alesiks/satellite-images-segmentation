@@ -1,19 +1,17 @@
 import os
 import random
 
-import cv2
 import tifffile as tiff
-from PIL import Image, ImageDraw
-from keras.utils import plot_model
+from keras import Input, Model, callbacks
+from keras.layers import MaxPooling2D, np, Convolution2D, UpSampling2D, concatenate, BatchNormalization
+from keras.optimizers import Adam
 from sklearn.model_selection import KFold
 
-from app.config import *
-from app.jaccard_metrics import jaccard_coef, jaccard_coef_int
-from collections import defaultdict
-from keras import Input, Model, callbacks, regularizers
-from keras.layers import MaxPooling2D, np, Convolution2D, UpSampling2D, concatenate, BatchNormalization
-from keras.optimizers import Nadam, Adam
-from shapely.geometry import MultiPolygon, Polygon
+
+from app.config.main_config import TRAIN_INPUT_DATA_PATH, TRAIN_OUTPUT_DATA_PATH, VALIDATION_INPUT_DATA_PATH, \
+    VALIDATION_OUTPUT_DATA_PATH, IMAGE_FORMAT, IMAGE_SIZE
+from app.net.jaccard_metrics import jaccard_coef, jaccard_coef_int
+
 
 class NeuralNetwork(object):
 
@@ -30,9 +28,9 @@ class NeuralNetwork(object):
         self.y = self.create_image_dataset(TRAIN_OUTPUT_DATA_PATH)
         self.y = self.modify_y_set(self.y)
 
-        # self.x_val = self.create_image_dataset(VALIDATION_INPUT_DATA_PATH)
-        # self.y_val = self.create_image_dataset(VALIDATION_OUTPUT_DATA_PATH)
-        # self.y_val = self.modify_y_set(self.y_val)
+        self.x_val = self.create_image_dataset(VALIDATION_INPUT_DATA_PATH)
+        self.y_val = self.create_image_dataset(VALIDATION_OUTPUT_DATA_PATH)
+        self.y_val = self.modify_y_set(self.y_val)
         #
         # self.x_test = self.create_image_dataset(TEST_INPUT_DATA_PATH)
 
@@ -44,7 +42,7 @@ class NeuralNetwork(object):
                 image = tiff.imread(directory + f)
                 if len(image) == IMAGE_SIZE:
                     dataset.append(image)
-        dataset = np.array(dataset, np.float32) #/ 1024.
+        dataset = np.array(dataset, np.float16) #/ 1024.
         return dataset
 
 
@@ -121,16 +119,28 @@ class NeuralNetwork(object):
     def train_network(self):
         callback = callbacks.ModelCheckpoint("../data/weights.{epoch:02d}-{val_loss:.3f}.hdf5")
         model = self.get_unet()
-        # model.fit(self.x, self.y, batch_size=24, epochs=50, validation_data=(self.x_val, self.y_val), callbacks=[callback])
-        model.fit_generator(
-            self.batch_generator(batch_size=32),
-            epochs=50,
-            verbose=1,
-            validation_data=(self.x_val, self.y_val),
-            callbacks=[callback],
-            steps_per_epoch=self.x.shape[0] / 32 # it is N train images divided by batch size
-            )
+        model.fit(self.x, self.y, batch_size=24, epochs=45, validation_data=(self.x_val, self.y_val), callbacks=[callback])
+        # model.fit_generator(
+        #     self.batch_generator(batch_size=32),
+        #     epochs=50,
+        #     verbose=1,
+        #     validation_data=(self.x_val, self.y_val),
+        #     callbacks=[callback],
+        #     steps_per_epoch=self.x.shape[0] / 32 # it is N train images divided by batch size
+        #     )
         model.save_weights("../data/weights.h5")
+
+    def batch_generator(self, batch_size):
+        while True:
+            x = np.zeros((batch_size, IMAGE_SIZE, IMAGE_SIZE, 3))
+            y = np.zeros((batch_size, IMAGE_SIZE, IMAGE_SIZE, 1))
+            for i in range(batch_size):
+                random_image = random.randint(0, self.x.shape[0] - 1)
+                x[i] = self.x[random_image]
+                y[i] = self.y[random_image]
+
+            yield x, y
+
 
     def train_network_kfold_validation(self, folds_num=5):
         skf = KFold(n_splits=folds_num, shuffle=True)
@@ -150,17 +160,6 @@ class NeuralNetwork(object):
         predictions = model.predict(self.x_test, batch_size=10)
         self.convert_predictions_by_threshold(predictions, 0.6)
         return predictions
-
-    def batch_generator(self, batch_size):
-        while True:
-            x = np.zeros((batch_size, IMAGE_SIZE, IMAGE_SIZE, 3))
-            y = np.zeros((batch_size, IMAGE_SIZE, IMAGE_SIZE, 1))
-            for i in range(batch_size):
-                random_image = random.randint(0, self.x.shape[0] - 1)
-                x[i] = self.x[random_image]
-                y[i] = self.y[random_image]
-
-            yield x, y
 
     def convert_predictions_by_threshold(self, img, threshold):
         for x in np.nditer(img, op_flags=['readwrite']):

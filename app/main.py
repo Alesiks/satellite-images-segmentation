@@ -1,25 +1,16 @@
-import numpy as np
-from app.config import *
-from app.image_prediction import ImagePrediction
-from app.images.img_preparer import ImagesPreparer
-from app.neuralnetwork import NeuralNetwork
-import tifffile as tiff
-import matplotlib.pyplot as plt
-
+from app.predition.img_dataset_prediction import DatasetPredictor
 
 # preparer = ImagesPreparer()
-# preparer.create_data(1000)
-# preparer.create_data(350, True)
+# preparer.create_data_inria_aerial_images(300)
 
 # net = NeuralNetwork()
 # net.init_data()
-# net.train_network_kfold_validation(folds_num=3)
+# net.train_network()
+# numpy.set_printoptions(threshold=numpy.nan)
 
+# imgPrediction = ImagePrediction(["../data/weights.11-0.250.hdf5"])
+# img = imgPrediction.predict_image("../../../machine learning data/NEW2-AerialImageDataset/train/images/austin1.tif")
 
-imgPrediction = ImagePrediction(["../data/zz/exp_8__k_folds/0-weights.38-0.204.hdf5", "../data/zz/exp_8__k_folds/1-weights.39-0.215.hdf5"])
-imgPrediction.predict_image_tta("../data/buildings for test/6020_1_4.tif")
-# imgPrediction.predict_image_tta("../data/three_band/all images/6070_2_3.tif")
-
-# im = tiff.imread("../data/buildings for test/exp1.tif").transpose(2,0,1)
-# print(im.shape)
+tester = DatasetPredictor(["../data/weights.11-0.250.hdf5"])
+tester.predictInriaAerialDataset()
 

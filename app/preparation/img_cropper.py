@@ -3,21 +3,20 @@ import random
 
 import numpy as np
 import tifffile as tiff
-from app.config import *
+
+from app.config.main_config import IMAGE_SIZE, IMAGE_FORMAT, ROTATION_ANGLE_STEP
 
 csv.field_size_limit(13107200);
 
 
 class ImagesCropper(object):
-
     SAVE_IMG_THRESHOLD = 0.14
 
     def __init__(self):
         self.total_objects_ratio = 0
         self.total_objects_num = 0
-        pass
 
-    def crop_image(self, image_name, image, cropped_images_folder_path, shift_step = IMAGE_SIZE):
+    def crop_image(self, image_name, image, cropped_images_folder_path, shift_step=IMAGE_SIZE):
         x = 0
         x_len = image.shape[1]
         y_len = image.shape[0]
@@ -36,7 +35,7 @@ class ImagesCropper(object):
             x += shift_step
 
     def crop_image_randomly(self, image_name, image, image_mask, cropped_images_folder_path,
-                            croppped_images_quantity):
+                            cropped_images_mask_folder_path, croppped_images_quantity, rotation_angle_stop=90, make_flip=False):
         x = len(image)
         y = len(image[0])
 
@@ -61,11 +60,13 @@ class ImagesCropper(object):
                 self.total_objects_ratio += objects_ratio
                 cropped_img = image[x_start:x_end, y_start:y_end]
 
-                for angle in range(0, 180, 90):
-                    self.__rotate_img_and_save(cropped_img, cropped_mask, cropped_images_folder_path, image_name, x_start, y_start, angle)
+                for angle in range(0, rotation_angle_stop, ROTATION_ANGLE_STEP):
+                    self.__rotate_img_and_save(cropped_img, cropped_mask, cropped_images_folder_path,
+                                               cropped_images_mask_folder_path, image_name, x_start, y_start, angle,
+                                               make_flip)
 
-
-    def __rotate_img_and_save(self, img, img_mask, cropped_images_folder_path, image_name, x_start, y_start, angle):
+    def __rotate_img_and_save(self, img, img_mask, cropped_images_folder_path, cropped_images_mask_folder_path,
+                              image_name, x_start, y_start, angle, make_flip):
 
         rotations_angles_switcher = {
             0: 0,
@@ -74,29 +75,27 @@ class ImagesCropper(object):
             270: 3
         }
 
-        rotate_times = rotations_angles_switcher.get(angle)
+        rotation_num = rotations_angles_switcher.get(angle)
 
-        rotated_img = np.rot90(img, rotate_times)
-        rotated_img_mask = np.rot90(img_mask, rotate_times)
+        rotated_img = np.rot90(img, rotation_num)
+        rotated_img_mask = np.rot90(img_mask, rotation_num)
 
-        flipped_img = np.flip(rotated_img, 0)
-        flipped_img_mask = np.flip(rotated_img_mask, 0)
+        self.__save_img(rotated_img, cropped_images_folder_path, image_name, angle, x_start, y_start, False)
+        self.__save_img(rotated_img, cropped_images_mask_folder_path, image_name, angle, x_start, y_start, False)
 
-        self.__save_img(rotated_img, cropped_images_folder_path, image_name, angle, x_start, y_start, False, False)
-        self.__save_img(rotated_img_mask, cropped_images_folder_path, image_name, angle, x_start, y_start, True, False)
+        if make_flip:
+            flipped_img = np.flip(rotated_img, 0)
+            flipped_img_mask = np.flip(rotated_img_mask, 0)
 
-        self.__save_img(flipped_img, cropped_images_folder_path, image_name, angle, x_start, y_start, False, True)
-        self.__save_img(flipped_img_mask, cropped_images_folder_path, image_name, angle, x_start, y_start, True, True)
+            self.__save_img(flipped_img, cropped_images_folder_path, image_name, angle, x_start, y_start, True)
+            self.__save_img(flipped_img_mask, cropped_images_mask_folder_path, image_name, angle, x_start, y_start, True)
 
-
-    def __save_img(self, image, cropped_images_folder_path, image_name, angle, x_start, y_start, is_mask, isFlipped):
-        if is_mask:
-            cropped_images_folder_path += "mask/"
+    def __save_img(self, image, cropped_images_folder_path, image_name, angle, x_start, y_start, isFlipped):
         if isFlipped:
             cropped_images_folder_path += "flipped_"
 
-        img_name = (cropped_images_folder_path + '{}___{}' + IMAGE_FORMAT).\
-                format(image_name, "__rotated" + str(angle) + "_x=" + str(x_start) + ", y=" + str(y_start))
+        img_name = (cropped_images_folder_path + '{}___{}' + IMAGE_FORMAT). \
+            format(image_name, "__rotated" + str(angle) + "_x=" + str(x_start) + ", y=" + str(y_start))
 
         tiff.imsave(img_name, image)
 
