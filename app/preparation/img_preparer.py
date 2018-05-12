@@ -39,6 +39,8 @@ class ImagesPreparer(object):
                                                      data_set_size)
             num_images_added_to_train_set += 1
 
+        # print(self.cropper.total_objects_ratio)
+
     # code below is used for preparing data from kaggle contest (Dstl Satellite Imagery Feature Detection)
     # the code below mostly was taken from competitors of Dstl contest
     def create_data_dstl(self, data_set_size, is_validation=False):
@@ -95,3 +97,4 @@ class ImagesPreparer(object):
         cv2.fillPoly(img_mask, exteriors, 1)
         cv2.fillPoly(img_mask, interiors, 0)
         return img_mask
+

@@ -6,7 +6,7 @@ VALIDATION_INPUT_DATA_PATH = "../data/validation/"
 VALIDATION_OUTPUT_DATA_PATH = "../data/validation/mask/"
 
 TEST_INPUT_DATA_PATH = "../../../machine learning data/NEW2-AerialImageDataset/test/images/"
-TEST_OUTPUT_DATA_PATH = "../data/test/"
+TEST_OUTPUT_DATA_PATH = "../data/test6/"
 
 # ----- data preparation
 GRID_SIZES_PATH = "../data/grid_sizes/grid_sizes.csv"
@@ -16,10 +16,10 @@ BUILDINGS_MASK_DATA_PATH = "../../../machine learning data/NEW2-AerialImageDatas
 
 
 # ----- images
-IMAGE_SIZE = 160  # 192
+IMAGE_SIZE = 224 #192 # 160
 IMAGE_FORMAT = ".tif"
 
-PREDICTION_IMAGE_SIZE = 100  # 150
+PREDICTION_IMAGE_SIZE = 180 #150 # 100
 
 
 # -----

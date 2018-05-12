@@ -1,19 +1,28 @@
 import os
 import shutil
 
+import math
+from PIL import Image
+
 import numpy as np
 import tifffile as tiff
-
+import matplotlib.pyplot as plt
 from app.config.main_config import PREDICTION_IMAGE_SIZE, IMAGE_SIZE, IMAGE_FORMAT
 from app.net.neuralnetwork import NeuralNetwork
 from app.preparation.img_cropper import ImagesCropper
+import cv2
+
 
 
 class ImagePredictor(object):
+    # running vertically downwards across rows
+    ROWS_AXIS = 0
+    # running horizontally across columns
+    COLUMNS_AXIS = 1
 
-    def __init__(self, prediction_weights):
+    def __init__(self, prediction_weights, model):
         self.cropper = ImagesCropper()
-        self.net = NeuralNetwork()
+        self.net = NeuralNetwork(model)
         self.prediction_weights = prediction_weights
 
     # predict image mask according predictions of image and rotated image
@@ -26,18 +35,19 @@ class ImagePredictor(object):
         res_rot_img = np.rot90(res_rot_img, 3)
 
         newar = np.add(res_img, res_rot_img)
-        # b = newar > 3
-        # newar = b.astype(int)
+        b = newar > 1
+        newar = b.astype(int)
 
         # tiff.imshow(newar)
         # plt.show()
         return newar
 
     def predict_image_mask(self, image_path):
-        image = tiff.imread(image_path)#.transpose([1, 2, 0])
+      #  image = tiff.Ima(image_path)#.transpose([1, 2, 0])
+        image = cv2.imread(image_path)
         res_img = self.__predict(image)
 
-        # tiff.imshow(res_img)
+        tiff.imshow(res_img)
         # plt.show()
         return res_img
 
@@ -77,51 +87,51 @@ class ImagePredictor(object):
     # for image is added frame, after predictions this frame disappear
     # frame consists of flipped image border parts
     def __resize_image_for_prediction(self, image):
-        new_img = self.__concatenate_by_axis(image, 0)
-        new_img = self.__concatenate_by_axis(new_img, 1)
+        new_img = self.__concatenate_by_axis(image, self.ROWS_AXIS)
+        new_img = self.__concatenate_by_axis(new_img, self.COLUMNS_AXIS)
         return new_img
 
     def __concatenate_by_axis(self, image, axis):
-        len = image.shape[axis]
-        updated_len = self.__get_updated_length(len)
+        axis_len = image.shape[axis]
+        updated_axis_len = self.__get_updated__axis_length(axis_len)
 
-        flipped_part = self.__get_flip_part_img_top(len, updated_len, image, axis)
+        flipped_part = self.__get_flip_part_img_top(axis_len, updated_axis_len, image, axis)
         new_img = np.concatenate((image, flipped_part), axis)
 
-        flipped_part = self.__get_flip_part_img_bottom(len, updated_len, image, axis)
+        flipped_part = self.__get_flip_part_img_bottom(axis_len, updated_axis_len, image, axis)
         new_img = np.concatenate((flipped_part, new_img), axis)
         return new_img
 
-    def __get_updated_length(self, len):
-        updated_len = (len // PREDICTION_IMAGE_SIZE) + 1
+    def __get_updated__axis_length(self, axis_len):
+        updated_len = (axis_len // PREDICTION_IMAGE_SIZE) + 1
         updated_len *= PREDICTION_IMAGE_SIZE
         updated_len += IMAGE_SIZE - PREDICTION_IMAGE_SIZE
         return updated_len
 
     def __get_flip_part_img_top(self, len, updated_len, image, axis):
         flip_part_len = len - (updated_len - len) // 2
-        if axis == 0:
+        if axis == self.ROWS_AXIS:
             flipped_part = np.flip(image[flip_part_len:len, :], axis)
-        elif axis == 1:
+        elif axis == self.COLUMNS_AXIS:
             flipped_part = np.flip(image[:, flip_part_len:len], axis)
         return flipped_part
 
     def __get_flip_part_img_bottom(self, len, updated_len, image, axis):
-        diff = (updated_len - len) // 2
-        if axis == 0:
+        diff = math.ceil((updated_len - len) / 2)
+        if axis == self.ROWS_AXIS:
             flipped_part = np.flip(image[0:diff, :], axis)
-        elif axis == 1:
+        elif axis == self.COLUMNS_AXIS:
             flipped_part = np.flip(image[:, 0:diff], axis)
         return flipped_part
 
     def __get_dataset(self, image, directory, shift_step=IMAGE_SIZE):
-        x_len = image.shape[1]
-        y_len = image.shape[0]
+        width = image.shape[1]
+        height = image.shape[0]
         dataset = []
         y_border = 0
-        while y_border <= y_len - IMAGE_SIZE:
+        while y_border <= height - IMAGE_SIZE:
             x_border = 0
-            while x_border <= x_len - IMAGE_SIZE:
+            while x_border <= width - IMAGE_SIZE:
                 img = tiff.imread(directory + "img___x={}, y={}{}".format(x_border, y_border, IMAGE_FORMAT))
                 dataset.append(img)
                 x_border += shift_step
@@ -129,15 +139,15 @@ class ImagePredictor(object):
         return dataset
 
     def __concat_predictions(self, image, predictions, shift_step=IMAGE_SIZE):
-        x_len = image.shape[1]
-        y_len = image.shape[0]
+        width = image.shape[1]
+        height = image.shape[0]
         full_image = []
         y_border = 0
         i = 0
-        while y_border <= y_len - IMAGE_SIZE:
+        while y_border <= height - IMAGE_SIZE:
             x_border = 0
             images = []
-            while x_border <= x_len - IMAGE_SIZE:
+            while x_border <= width - IMAGE_SIZE:
                 img = predictions[i]
                 crop_start = int((IMAGE_SIZE - shift_step) / 2)
                 crop_end = int(crop_start + shift_step)
