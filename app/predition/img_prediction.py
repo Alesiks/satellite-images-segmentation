@@ -47,7 +47,7 @@ class ImagePredictor(object):
         image = cv2.imread(image_path)
         res_img = self.__predict(image)
 
-        tiff.imshow(res_img)
+        # tiff.imshow(res_img)
         # plt.show()
         return res_img
 

@@ -110,7 +110,7 @@ class NeuralNetwork(object):
             i+=1
 
     def __lr_scheduler(self, epoch):
-        if epoch == 10:
+        if epoch == 9:
             curr_lr = K.get_value(self.model.optimizer.lr)
             curr_lr /= 10
             K.set_value(self.model.optimizer.lr, curr_lr)
