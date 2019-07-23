@@ -1,11 +1,15 @@
 import csv
+import json
 import os
 
 import cv2
+import gdal
 import numpy as np
 import shapely
 import shapely.wkt
 import tifffile as tiff
+import matplotlib.pyplot as plt
+
 
 from app.config.main_config import BUILDINGS_DATA_PATH, IMAGE_FORMAT, BUILDINGS_MASK_DATA_PATH, \
     VALIDATION_INPUT_DATA_PATH, TRAIN_INPUT_DATA_PATH, TRAIN_POLYGONS_PATH, GRID_SIZES_PATH, \
@@ -16,12 +20,86 @@ from app.preparation.img_cropper import ImagesCropper
 class ImagesPreparer(object):
     TRAIN_IMAGES_TO_VALIDATION_RATIO = 7
 
-    def __init__(self, object_type=1):
+    def __init__(self, object_type=1, samples_path=BUILDINGS_DATA_PATH, geojson_path=BUILDINGS_MASK_DATA_PATH):
         self.object_type = object_type
-        self.filenames = os.listdir(BUILDINGS_DATA_PATH)
+        self.samples_path = samples_path
+        self.filenames = os.listdir(samples_path)
+        self.samples_geojson_path = geojson_path
         self.cropper = ImagesCropper()
 
-    def create_data_inria_aerial_images(self, data_set_size, is_validation=False):
+    def create_data_chinese_images(self, data_set_size, is_validation=False):
+        num_images_added_to_train_set = 0
+        for f in self.filenames:
+            if f.endswith(IMAGE_FORMAT):
+                image_id = f[:-4]
+                original_image = tiff.imread((self.samples_path + '{}' + IMAGE_FORMAT).format(image_id))
+                image_mask = self.get_mask_for_chinese_images((self.samples_path + '{}' + IMAGE_FORMAT).format(image_id),
+                                                         (self.samples_geojson_path + '{}' + ".geojson").format(image_id))
+
+                if is_validation and num_images_added_to_train_set == self.TRAIN_IMAGES_TO_VALIDATION_RATIO:
+                    num_images_added_to_train_set = 0
+
+                    self.cropper.crop_image_randomly(image_id, original_image, image_mask, VALIDATION_INPUT_DATA_PATH,
+                                                     VALIDATION_OUTPUT_DATA_PATH,
+                                                     data_set_size, 180)
+                else:
+                    self.cropper.crop_image_randomly(image_id, original_image, image_mask, TRAIN_INPUT_DATA_PATH,
+                                                     TRAIN_OUTPUT_DATA_PATH,
+                                                     data_set_size, 180)
+                    num_images_added_to_train_set += 1
+
+
+    def get_mask_for_chinese_images(self, image_path, image_geojson_path):
+        ds = gdal.Open(image_path)
+        width = ds.RasterXSize
+        height = ds.RasterYSize
+        xmin = ds.GetGeoTransform()[0]
+        ymax = ds.GetGeoTransform()[3]
+        step = 0.2;
+        ymin = ymax - height * step
+        xmax = xmin + width * step
+
+        shape = (width, height)
+
+        with open(image_geojson_path) as json_content:
+            data = json.load(json_content)
+
+            polys = []
+            for sh in data['features']:
+                if sh['geometry']['coordinates'] and sh['geometry']['coordinates'][0]:
+                    geom = np.array(sh['geometry']['coordinates'][0][0])
+                    geom_fixed = self.__get_mask(shape, geom, xmin, ymin, xmax, ymax)
+                    pts = geom_fixed.astype(int)
+                    polys.append(pts)
+
+        mask = np.zeros(shape)
+        cv2.fillPoly(mask, polys, 1)
+        # mask = mask.astype(bool)
+        # mask = mask.reshape(len(mask), len(mask[0]), 1)
+        # tifffile.imsave("D://test1.jpg", mask)
+        # plt.imshow(mask)
+        # plt.show()
+        return mask
+
+
+    def __get_mask(self, shape, point, xMin, yMin, xMax, yMax):
+        w, h = shape
+
+        dX = xMax - xMin
+        dY = yMax - yMin
+
+        x, y = point[:, 0], point[:, 1]
+
+        # w_ = w * (w / (w + 1))
+        xp = ((x - xMin) / dX) * shape[0]
+
+        # h_ = h * (h / (h + 1))
+        yp = ((y - yMin) / dY) * shape[1]
+
+        return np.concatenate([xp[:, None], yp[:, None]], axis=1)
+
+
+    def create_data_inria_aerial_images(self, data_set_size,is_validation=False):
         num_images_added_to_train_set = 0
         for f in self.filenames:
             if f.endswith(IMAGE_FORMAT):
@@ -47,7 +125,7 @@ class ImagesPreparer(object):
         for f in self.filenames:
             if f.endswith(IMAGE_FORMAT):
                 image_id = f[:-4]
-                original_image = tiff.imread((BUILDINGS_DATA_PATH + '{}' + IMAGE_FORMAT).format(image_id)).transpose(
+                original_image = tiff.imread((self.samples_path + '{}' + IMAGE_FORMAT).format(image_id)).transpose(
                     [1, 2, 0])
 
                 x_max, y_min = self.__load_grid_sizes(image_id)

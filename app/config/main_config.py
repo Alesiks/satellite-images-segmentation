@@ -1,9 +1,9 @@
 # ----- data
-TRAIN_INPUT_DATA_PATH = "D:\\prog\\satellite-images-segmentation\\data\\train\\"
-TRAIN_OUTPUT_DATA_PATH = "D:\\prog\\satellite-images-segmentation\\data\\train\\mask\\"
+TRAIN_INPUT_DATA_PATH = "D:\\prog\\satellite-images-segmentation\\data\\train_ch\\"
+TRAIN_OUTPUT_DATA_PATH = "D:\\prog\\satellite-images-segmentation\\data\\train_ch\\mask\\"
 
-VALIDATION_INPUT_DATA_PATH = "D:\\prog\\satellite-images-segmentation\\data\\validation\\"
-VALIDATION_OUTPUT_DATA_PATH = "D:\\prog\\satellite-images-segmentation\\data\\validation\\mask/"
+VALIDATION_INPUT_DATA_PATH = "D:\\prog\\satellite-images-segmentation\\data\\validation_ch\\"
+VALIDATION_OUTPUT_DATA_PATH = "D:\\prog\\satellite-images-segmentation\\data\\validation_ch\\mask\\"
 
 TEST_INPUT_DATA_PATH = "D:\\machine learning data\\NEW2-AerialImageDataset\\test\\images\\"
 TEST_OUTPUT_DATA_PATH = ".D:\\prog\\satellite-images-segmentation\\data\\test6\\"
@@ -24,3 +24,9 @@ PREDICTION_IMAGE_SIZE = 180 #150 # 100
 
 # -----
 ROTATION_ANGLE_STEP = 90
+
+
+
+# -----
+IMAGE_SAMPLES = "D:\\machine learning data\\Сhinese\\data\\0.2resolution\\tif\\2018\\first_train\\"
+IMAGE_SAMPLES_GEOJSON = "D:\\machine learning data\\Сhinese\\data\\0.2resolution\\geojson\\2018\\first_train\\"

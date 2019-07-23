@@ -43,8 +43,8 @@ class ImagePredictor(object):
         return newar
 
     def predict_image_mask(self, image_path):
-      #  image = tiff.Ima(image_path)#.transpose([1, 2, 0])
-        image = cv2.imread(image_path)
+        image = tiff.imread(image_path)#.transpose([1, 2, 0])
+        # image = cv2.imread(image_path)
         res_img = self.__predict(image)
 
         # tiff.imshow(res_img)

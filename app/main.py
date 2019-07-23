@@ -7,17 +7,15 @@ from app.predition.img_dataset_prediction import DatasetPredictor
 from app.predition.img_prediction import ImagePredictor
 from app.preparation.img_preparer import ImagesPreparer
 
-# preparer = ImagesPreparer()
-# preparer.create_data_inria_aerial_images(80, False)
-
-
-unet = UNET()
-
-# # tiramisu = Tiramisu()
+preparer = ImagesPreparer(samples_path="D:\\machine learning data\\Сhinese\\data\\0.2resolution\\tif\\2016\\",
+                          geojson_path="D:\\machine learning data\\Сhinese\\data\\0.2resolution\\geojson\\2016\\")
+preparer.create_data_chinese_images(200, True)
 #
-net = NeuralNetwork(unet.model)
-net.init_data()
-net.train_network()
+#
+# unet = UNET()
+# net = NeuralNetwork(unet.model)
+# net.init_data()
+# net.train_network()
 # numpy.set_printoptions(threshold=numpy.nan)
 #
 # unet = UNET()
@@ -25,5 +23,6 @@ net.train_network()
 # img = imgPrediction.predict_image_mask("../data/minsk.jpg")
 #
 # unet = UNET()
-# tester = DatasetPredictor(["../data/weights.09-0.225.hdf5"], unet.model)
-# tester.predictInriaAerialDataset("../data/minsk and other/", "../data/mask for minsk and other/")
+# tester = DatasetPredictor(["../data/weights.03-0.001.hdf5"], unet.model)
+# tester.predictInriaAerialDataset("D:\\machine learning data\\Сhinese\\data\\0.8resolution\\tif\\test\\",
+#                                  "D:\\machine learning data\\Сhinese\\data\\0.8resolution\\tif\\res\\")
