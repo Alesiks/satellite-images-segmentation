@@ -75,7 +75,7 @@ class ImagesPreparer(object):
         mask = np.zeros(shape)
         cv2.fillPoly(mask, polys, 1)
         # mask = mask.astype(bool)
-        # mask = mask.reshape(len(mask), len(mask[0]), 1)
+        mask = mask.reshape(len(mask), len(mask[0]), 1)
         # tifffile.imsave("D://test1.jpg", mask)
         # plt.imshow(mask)
         # plt.show()
