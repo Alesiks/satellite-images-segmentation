@@ -4,7 +4,7 @@ from keras.optimizers import Adam
 from keras.utils import plot_model
 
 from app.config.main_config import IMAGE_SIZE
-from app.net.jaccard_metrics import jaccard_coef, jaccard_coef_int
+from app.net.jaccard_metrics import jaccard_coef, jaccard_coef_int, jaccard_coef_loss
 
 
 class UNET(object):
@@ -88,6 +88,6 @@ class UNET(object):
         conv10 = Convolution2D(1, (1, 1), activation='sigmoid', padding="same")(conv9)
 
         model = Model(inputs=inputs, outputs=conv10)
-        model.compile(optimizer=Adam(), loss='binary_crossentropy', metrics=[jaccard_coef, jaccard_coef_int, 'accuracy'])
+        model.compile(optimizer=Adam(), loss=jaccard_coef_loss, metrics=[jaccard_coef, jaccard_coef_int, 'accuracy', 'binary_crossentropy'])
         plot_model(model, to_file='model_plot.png', show_shapes=True, show_layer_names=True)
         return model

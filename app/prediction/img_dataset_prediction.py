@@ -4,7 +4,7 @@ import numpy
 import tifffile as tiff
 
 from app.config.main_config import TEST_INPUT_DATA_PATH, TEST_OUTPUT_DATA_PATH
-from app.predition.img_prediction import ImagePredictor
+from app.prediction.img_prediction import ImagePredictor
 
 
 class DatasetPredictor(object):

@@ -41,11 +41,11 @@ class ImagesPreparer(object):
 
                     self.cropper.crop_image_randomly(image_id, original_image, image_mask, VALIDATION_INPUT_DATA_PATH,
                                                      VALIDATION_OUTPUT_DATA_PATH,
-                                                     data_set_size, 180)
+                                                     data_set_size, 270)
                 else:
                     self.cropper.crop_image_randomly(image_id, original_image, image_mask, TRAIN_INPUT_DATA_PATH,
                                                      TRAIN_OUTPUT_DATA_PATH,
-                                                     data_set_size, 180)
+                                                     data_set_size, 270)
                     num_images_added_to_train_set += 1
 
 
@@ -54,9 +54,9 @@ class ImagesPreparer(object):
         width = ds.RasterXSize
         height = ds.RasterYSize
         xmin = ds.GetGeoTransform()[0]
-        ymax = ds.GetGeoTransform()[3]
-        step = 0.2;
-        ymin = ymax - height * step
+        ymin = ds.GetGeoTransform()[3]
+        step = 0.2
+        ymax = ymin - height * step
         xmax = xmin + width * step
 
         shape = (width, height)
@@ -78,6 +78,7 @@ class ImagesPreparer(object):
         mask = mask.reshape(len(mask), len(mask[0]), 1)
         # tifffile.imsave("D://test1.jpg", mask)
         # plt.imshow(mask)
+        # tiff.imshow(mask)
         # plt.show()
         return mask
 

@@ -7,6 +7,7 @@ from keras.callbacks import LearningRateScheduler
 from keras.layers import MaxPooling2D, np, Convolution2D, UpSampling2D, concatenate, BatchNormalization, K
 from keras.optimizers import Adam
 from sklearn.model_selection import KFold
+import matplotlib.pyplot as plt
 
 
 from app.config.main_config import TRAIN_INPUT_DATA_PATH, TRAIN_OUTPUT_DATA_PATH, VALIDATION_INPUT_DATA_PATH, \
@@ -70,10 +71,11 @@ class NeuralNetwork(object):
 
     def train_network(self):
         save_wights = callbacks.ModelCheckpoint("../data/weights.{epoch:02d}-{val_loss:.3f}.hdf5")
-        change_learning_rate = LearningRateScheduler(self.__lr_scheduler)
+        # change_learning_rate = LearningRateScheduler(self.__lr_scheduler)
 
-        self.model.fit(self.x, self.y, batch_size=8, epochs=25, validation_data=(self.x_val, self.y_val),
-                  callbacks=[save_wights, change_learning_rate])
+        history = self.model.fit(self.x, self.y, batch_size=8, epochs=1, validation_data=(self.x_val, self.y_val),
+                  callbacks=[save_wights])
+        self.__plot_history(history)
         self.model.save_weights("../data/weights.h5")
 
     def batch_generator(self, batch_size):
@@ -116,6 +118,27 @@ class NeuralNetwork(object):
             K.set_value(self.model.optimizer.lr, curr_lr)
         print(K.get_value(self.model.optimizer.lr))
         return K.get_value(self.model.optimizer.lr)
+
+    def __plot_history(self, history):
+        # history for accuracy
+        plt.plot(history.history['acc'])
+        plt.plot(history.history['val_acc'])
+        plt.title('model accuracy')
+        plt.ylabel('accuracy')
+        plt.xlabel('epoch')
+        plt.legend(['train', 'validation'], loc='upper left')
+        # plt.show()
+        plt.savefig('../data/accuracy.png')
+        plt.clf()
+        # history for loss
+        plt.plot(history.history['loss'])
+        plt.plot(history.history['val_loss'])
+        plt.title('model loss')
+        plt.ylabel('loss')
+        plt.xlabel('epoch')
+        plt.legend(['train', 'validation'], loc='upper left')
+        # plt.show()
+        plt.savefig('../data/loss.png')
 
     def test_network(self, weights):
         self.model.load_weights(weights)

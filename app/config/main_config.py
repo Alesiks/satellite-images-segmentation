@@ -16,10 +16,10 @@ BUILDINGS_MASK_DATA_PATH = "D:\\machine learning data\\NEW2-AerialImageDataset\\
 
 
 # ----- images
-IMAGE_SIZE = 224 #192 # 160
+IMAGE_SIZE = 256 #224 #296  #192 #160
 IMAGE_FORMAT = ".tif"
 
-PREDICTION_IMAGE_SIZE = 180 #150 # 100
+PREDICTION_IMAGE_SIZE = 180 #150 #224 #100
 
 
 # -----
