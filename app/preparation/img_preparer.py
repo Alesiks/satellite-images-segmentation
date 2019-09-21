@@ -41,11 +41,11 @@ class ImagesPreparer(object):
 
                     self.cropper.crop_image_randomly(image_id, original_image, image_mask, VALIDATION_INPUT_DATA_PATH,
                                                      VALIDATION_OUTPUT_DATA_PATH,
-                                                     data_set_size, 270)
+                                                     data_set_size, 90)
                 else:
                     self.cropper.crop_image_randomly(image_id, original_image, image_mask, TRAIN_INPUT_DATA_PATH,
                                                      TRAIN_OUTPUT_DATA_PATH,
-                                                     data_set_size, 270)
+                                                     data_set_size, 90, make_flip=True)
                     num_images_added_to_train_set += 1
 
 
@@ -100,7 +100,7 @@ class ImagesPreparer(object):
         return np.concatenate([xp[:, None], yp[:, None]], axis=1)
 
 
-    def create_data_inria_aerial_images(self, data_set_size,is_validation=False):
+    def create_data_inria_aerial_images(self, data_set_size, is_validation=False):
         num_images_added_to_train_set = 0
         for f in self.filenames:
             if f.endswith(IMAGE_FORMAT):
@@ -111,11 +111,11 @@ class ImagesPreparer(object):
                     num_images_added_to_train_set = 0
                     self.cropper.crop_image_randomly(image_id, original_image, image_mask, VALIDATION_INPUT_DATA_PATH,
                                                      VALIDATION_OUTPUT_DATA_PATH,
-                                                     data_set_size)
+                                                     data_set_size, 180)
                 else:
                     self.cropper.crop_image_randomly(image_id, original_image, image_mask, TRAIN_INPUT_DATA_PATH,
                                                      TRAIN_OUTPUT_DATA_PATH,
-                                                     data_set_size)
+                                                     data_set_size, 180)
             num_images_added_to_train_set += 1
 
         # print(self.cropper.total_objects_ratio)

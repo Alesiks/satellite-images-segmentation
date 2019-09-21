@@ -34,7 +34,8 @@ class ImageDiscoverUtil(object):
         plt.plot(od.keys(), od.values(), 'ro')
         plt.xticks(np.arange(min(od.keys()), max(od.keys()) + 1, 2))
         plt.yticks(np.arange(min(od.values()), max(od.values()) + 1, int((max(od.values())-min(od.values())) / 40)))
-        plt.show()
+        # plt.figure(figsize=(1280/120, 960/120), dpi=120)
+        plt.savefig('../../data/data_distribution.png')
 
 
 
@@ -43,4 +44,4 @@ np.set_printoptions(threshold=np.nan)
 imageUtil = ImageDiscoverUtil()
 # imageUtil.get_buildings_distribution()
 
-imageUtil.get_buildings_distribution(images_mask_path="../" + TRAIN_OUTPUT_DATA_PATH)
+imageUtil.get_buildings_distribution(images_mask_path=TRAIN_OUTPUT_DATA_PATH)

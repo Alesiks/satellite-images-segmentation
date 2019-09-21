@@ -73,7 +73,7 @@ class NeuralNetwork(object):
         save_wights = callbacks.ModelCheckpoint("../data/weights.{epoch:02d}-{val_loss:.3f}.hdf5")
         # change_learning_rate = LearningRateScheduler(self.__lr_scheduler)
 
-        history = self.model.fit(self.x, self.y, batch_size=8, epochs=1, validation_data=(self.x_val, self.y_val),
+        history = self.model.fit(self.x, self.y, batch_size=12, epochs=40, validation_data=(self.x_val, self.y_val),
                   callbacks=[save_wights])
         self.__plot_history(history)
         self.model.save_weights("../data/weights.h5")
@@ -123,7 +123,7 @@ class NeuralNetwork(object):
         # history for accuracy
         plt.plot(history.history['acc'])
         plt.plot(history.history['val_acc'])
-        plt.title('model accuracy')
+        plt.title('Accuracy')
         plt.ylabel('accuracy')
         plt.xlabel('epoch')
         plt.legend(['train', 'validation'], loc='upper left')
@@ -133,12 +133,24 @@ class NeuralNetwork(object):
         # history for loss
         plt.plot(history.history['loss'])
         plt.plot(history.history['val_loss'])
-        plt.title('model loss')
+        plt.title('Loss')
         plt.ylabel('loss')
         plt.xlabel('epoch')
         plt.legend(['train', 'validation'], loc='upper left')
         # plt.show()
         plt.savefig('../data/loss.png')
+        plt.clf()
+        # history for jaccard coef
+        plt.plot(history.history['jaccard_coef'])
+        plt.plot(history.history['val_jaccard_coef'])
+        plt.title('Jaccard coef')
+        plt.ylabel('jaccard_coef')
+        plt.xlabel('epoch')
+        plt.legend(['train', 'validation'], loc='upper left')
+        # plt.show()
+        plt.savefig('../data/jaccard_coef.png')
+        plt.clf()
+
 
     def test_network(self, weights):
         self.model.load_weights(weights)

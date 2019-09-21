@@ -1,12 +1,12 @@
 # ----- data
-TRAIN_INPUT_DATA_PATH = "D:\\prog\\satellite-images-segmentation\\data\\train_ch\\"
-TRAIN_OUTPUT_DATA_PATH = "D:\\prog\\satellite-images-segmentation\\data\\train_ch\\mask\\"
+TRAIN_INPUT_DATA_PATH = "D:\\prog\\satellite-images-segmentation\\data\\train\\"
+TRAIN_OUTPUT_DATA_PATH = "D:\\prog\\satellite-images-segmentation\\data\\train\\mask\\"
 
-VALIDATION_INPUT_DATA_PATH = "D:\\prog\\satellite-images-segmentation\\data\\validation_ch\\"
-VALIDATION_OUTPUT_DATA_PATH = "D:\\prog\\satellite-images-segmentation\\data\\validation_ch\\mask\\"
+VALIDATION_INPUT_DATA_PATH = "D:\\prog\\satellite-images-segmentation\\data\\validation\\"
+VALIDATION_OUTPUT_DATA_PATH = "D:\\prog\\satellite-images-segmentation\\data\\validation\\mask\\"
 
 TEST_INPUT_DATA_PATH = "D:\\machine learning data\\NEW2-AerialImageDataset\\test\\images\\"
-TEST_OUTPUT_DATA_PATH = ".D:\\prog\\satellite-images-segmentation\\data\\test6\\"
+TEST_OUTPUT_DATA_PATH = "D:\\prog\\satellite-images-segmentation\\data\\test6\\"
 
 # ----- data preparation
 GRID_SIZES_PATH = "D:\\prog\\satellite-images-segmentation\\data\\grid_sizes\\grid_sizes.csv"
@@ -16,7 +16,7 @@ BUILDINGS_MASK_DATA_PATH = "D:\\machine learning data\\NEW2-AerialImageDataset\\
 
 
 # ----- images
-IMAGE_SIZE = 256 #224 #296  #192 #160
+IMAGE_SIZE = 224 #256 #224 #296  #192 #160
 IMAGE_FORMAT = ".tif"
 
 PREDICTION_IMAGE_SIZE = 180 #150 #224 #100
