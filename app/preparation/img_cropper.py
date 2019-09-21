@@ -5,6 +5,7 @@ import numpy as np
 import tifffile as tiff
 
 from app.config.main_config import IMAGE_SIZE, IMAGE_FORMAT, ROTATION_ANGLE_STEP
+from app.entity.entities import ImageDto, ImageCoordinates
 
 csv.field_size_limit(13107200);
 
@@ -130,5 +131,135 @@ class ImagesCropper(object):
 
         img_name = (cropped_images_folder_path + '{}___{}' + IMAGE_FORMAT). \
             format(image_name, "__rotated" + str(angle) + "_x=" + str(x_start) + ", y=" + str(y_start))
+
+        tiff.imsave(img_name, image)
+
+
+class SequentialImageCropper():
+
+    # running vertically downwards across rows
+    ROWS_AXIS = 0
+    # running horizontally across columns
+    COLUMNS_AXIS = 1
+
+    def __init__(self):
+       pass
+
+    def crop(self, image, image_name, shift_step):
+        x = 0
+        width = image.shape[self.COLUMNS_AXIS]
+        height = image.shape[self.ROWS_AXIS]
+
+        cropped_images_list = []
+
+        while x <= width - IMAGE_SIZE:
+            y = 0
+            x_start = x
+            x_end = x_start + IMAGE_SIZE
+            while y <= height - IMAGE_SIZE:
+                y_start = y
+                y_end = y_start + IMAGE_SIZE
+
+                cropped_image = image[y_start:y_end, x_start:x_end]
+                image_dto = ImageDto(('{}___{}' + IMAGE_FORMAT).format(image_name, "x=" + str(x_start) + ", y=" + str(y_start)),
+                                     cropped_image)
+
+                cropped_images_list.append(image_dto)
+
+                y += shift_step
+            x += shift_step
+
+        return cropped_images_list
+
+
+class RandomImageCropper():
+    # running vertically downwards across rows
+    ROWS_AXIS = 0
+    # running horizontally across columns
+    COLUMNS_AXIS = 1
+
+    MIN_SAVE_IMG_THRESHOLD = 0.11
+    MAX_SAVE_IMG_THRESHOLD = 0.89
+
+    NUM_IMAGES_BELLOW_MIN_THRESHOLD = 5
+    NUM_IMAGES_ABOVE_MAX_THRESHOLD = 2
+
+    def __init__(self):
+        self.total_objects_ratio = 0
+        self.total_objects_num = 0
+
+    def crop_image_randomly(self, image, image_name, image_mask, croppped_images_quantity):
+        x = len(image)
+        y = len(image[0])
+
+        images_bellow_min_threshold = 0
+        images_above_max_threshold = 0
+
+        coords_set = set()
+
+        for i in range(croppped_images_quantity):
+            x_start = random.randint(1, x - (IMAGE_SIZE + 2))
+            y_start = random.randint(1, y - (IMAGE_SIZE + 2))
+            if (x_start, y_start) in coords_set:
+                continue
+
+            coords_set.add((x_start, y_start))
+            x_end = x_start + IMAGE_SIZE
+            y_end = y_start + IMAGE_SIZE
+
+            image_coordinates = ImageCoordinates(x_start, x_end, y_start, y_end)
+
+            cropped_mask = image_mask[x_start:x_end, y_start:y_end]
+            objects_area = np.sum(cropped_mask[:, :])
+            objects_ratio = objects_area / (IMAGE_SIZE ** 2)
+
+            if objects_ratio > self.MIN_SAVE_IMG_THRESHOLD and objects_ratio < self.MAX_SAVE_IMG_THRESHOLD:
+                self.__crop_image(image, image_coordinates, objects_ratio)
+
+            elif objects_ratio < self.MIN_SAVE_IMG_THRESHOLD and images_bellow_min_threshold < self.NUM_IMAGES_BELLOW_MIN_THRESHOLD:
+                self.__crop_image(image, image_coordinates, objects_ratio)
+
+                images_bellow_min_threshold += 1
+
+            elif objects_ratio > self.MAX_SAVE_IMG_THRESHOLD and images_above_max_threshold < self.NUM_IMAGES_ABOVE_MAX_THRESHOLD:
+                self.__crop_image(image, image_coordinates, objects_ratio)
+
+                images_above_max_threshold += 1
+
+    def __crop_image(self, image, image_coordinates, objects_ratio):
+        self.total_objects_num += 1
+        self.total_objects_ratio += objects_ratio
+        cropped_img = image[image_coordinates.x_start:image_coordinates.x_end, image_coordinates.y_start:image_coordinates.y_end]
+        return cropped_img
+
+
+
+
+class ImageAugumentator():
+
+    def __init__(self):
+        self.rotations_angles_switcher = {
+            0: 0,
+            90: 1,
+            180: 2,
+            270: 3
+        }
+
+    def rotate(self, image, angle):
+        rotation_num = self.rotations_angles_switcher.get(angle)
+
+        rotated_image = np.rot90(image, rotation_num)
+        return rotated_image
+
+    def flip(self, image):
+        flipped_image = np.flip(image, 0)
+        return flipped_image
+
+
+class LocalImageUploader():
+
+    def save(self, image, directory, image_name):
+
+        img_name = directory + image_name
 
         tiff.imsave(img_name, image)
