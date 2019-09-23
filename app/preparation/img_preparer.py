@@ -1,6 +1,8 @@
 import csv
 import json
 import os
+from typing import List, Set, Tuple, Any
+
 
 import cv2
 import gdal
@@ -14,7 +16,8 @@ import matplotlib.pyplot as plt
 from app.config.main_config import BUILDINGS_DATA_PATH, IMAGE_FORMAT, BUILDINGS_MASK_DATA_PATH, \
     VALIDATION_INPUT_DATA_PATH, TRAIN_INPUT_DATA_PATH, TRAIN_POLYGONS_PATH, GRID_SIZES_PATH, \
     VALIDATION_OUTPUT_DATA_PATH, TRAIN_OUTPUT_DATA_PATH
-from app.preparation.img_cropper import ImagesCropper
+from app.entity.entities import SourceAndMaskImagesDto
+from app.preparation.img_cropper import ImagesCropper, RandomImageCropper
 
 
 class ImagesPreparer(object):
@@ -179,23 +182,36 @@ class ImagesPreparer(object):
 
 class InriaDatasetPreparer():
 
-    def prepare_dataset_for_training(self, data_set_size, is_validation=False):
-        num_images_added_to_train_set = 0
-        for f in self.filenames:
+    def __init__(self, data_path, ground_truth_data_path, train_dataset_path, validation_dataset_path, datasetSettings):
+        self.data_path = data_path
+        self.ground_truth_data_path = ground_truth_data_path
+        self.train_dataset_path = train_dataset_path
+        self.validation_dataset_path = validation_dataset_path
+        self.dataset_settings = datasetSettings
+
+        self.image_cropper = RandomImageCropper()
+        self.image_augumentator = ImageAugumentator()
+
+    def prepare_dataset_for_training(self, is_validation=False):
+        filenames = os.listdir(self.data_path)
+
+        for f in filenames:
             if f.endswith(IMAGE_FORMAT):
                 image_id = f[:-4]
-                original_image = tiff.imread((BUILDINGS_DATA_PATH + '{}' + IMAGE_FORMAT).format(image_id))
+                original_image = tiff.imread((self.data_path + '{}' + IMAGE_FORMAT).format(image_id))
                 image_mask = tiff.imread((BUILDINGS_MASK_DATA_PATH + '{}' + IMAGE_FORMAT).format(image_id)) / 255
-                if is_validation and num_images_added_to_train_set == self.TRAIN_IMAGES_TO_VALIDATION_RATIO:
-                    num_images_added_to_train_set = 0
-                    self.cropper.crop_image_randomly(image_id, original_image, image_mask, VALIDATION_INPUT_DATA_PATH,
-                                                     VALIDATION_OUTPUT_DATA_PATH,
-                                                     data_set_size, 180)
-                else:
-                    self.cropper.crop_image_randomly(image_id, original_image, image_mask, TRAIN_INPUT_DATA_PATH,
-                                                     TRAIN_OUTPUT_DATA_PATH,
-                                                     data_set_size, 180)
-            num_images_added_to_train_set += 1
+
+                cropped_images_list = self.image_cropper.crop_image_randomly(image_id, original_image, image_mask,
+                                                                             self.dataset_settings.segments_num_for_each_image)
+                for source_and_mask in cropped_images_list:
+                    if self.dataset_settings.flip is True:
+                        flipped_images: List[SourceAndMaskImagesDto] = []
+                        source_and_mask.source.image
+
+
+                    if self.dataset_settings.rotate > 0:
+                        pass
+
 
         # print(self.cropper.total_objects_ratio)
 
@@ -329,3 +345,40 @@ class DSTLDatasetPreparer():
         cv2.fillPoly(img_mask, exteriors, 1)
         cv2.fillPoly(img_mask, interiors, 0)
         return img_mask
+
+
+class ImageAugumentator():
+
+    def __init__(self):
+        self.rotations_angles_switcher = {
+            0: 0,
+            90: 1,
+            180: 2,
+            270: 3
+        }
+
+    def rotate(self, image, angle):
+        rotation_num = self.rotations_angles_switcher.get(angle)
+
+        rotated_image = np.rot90(image, rotation_num)
+        return rotated_image
+
+    def flip_list(self, image_list):
+        flipped_images = []
+        for image in image_list:
+            flipped = self.flip_single(image)
+            flipped_images.append(flipped)
+        return flipped_images
+
+    def flip(self, image):
+        flipped_image = np.flip(image, 0)
+        return flipped_image
+
+
+class LocalImageUploader():
+
+    def save(self, image, directory, image_name):
+
+        img_name = directory + image_name
+
+        tiff.imsave(img_name, image)

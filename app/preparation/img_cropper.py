@@ -1,11 +1,12 @@
 import csv
 import random
+from typing import List, Set, Tuple, Any
 
 import numpy as np
 import tifffile as tiff
 
 from app.config.main_config import IMAGE_SIZE, IMAGE_FORMAT, ROTATION_ANGLE_STEP
-from app.entity.entities import ImageDto, ImageCoordinates
+from app.entity.entities import ImageDto, ImageCoordinates, SourceAndMaskImagesDto
 
 csv.field_size_limit(13107200);
 
@@ -136,14 +137,13 @@ class ImagesCropper(object):
 
 
 class SequentialImageCropper():
-
     # running vertically downwards across rows
     ROWS_AXIS = 0
     # running horizontally across columns
     COLUMNS_AXIS = 1
 
     def __init__(self):
-       pass
+        pass
 
     def crop(self, image, image_name, shift_step):
         x = 0
@@ -161,8 +161,9 @@ class SequentialImageCropper():
                 y_end = y_start + IMAGE_SIZE
 
                 cropped_image = image[y_start:y_end, x_start:x_end]
-                image_dto = ImageDto(('{}___{}' + IMAGE_FORMAT).format(image_name, "x=" + str(x_start) + ", y=" + str(y_start)),
-                                     cropped_image)
+                image_dto = ImageDto(
+                    ('{}___{}' + IMAGE_FORMAT).format(image_name, "x=" + str(x_start) + ", y=" + str(y_start)),
+                    cropped_image)
 
                 cropped_images_list.append(image_dto)
 
@@ -173,11 +174,6 @@ class SequentialImageCropper():
 
 
 class RandomImageCropper():
-    # running vertically downwards across rows
-    ROWS_AXIS = 0
-    # running horizontally across columns
-    COLUMNS_AXIS = 1
-
     MIN_SAVE_IMG_THRESHOLD = 0.11
     MAX_SAVE_IMG_THRESHOLD = 0.89
 
@@ -185,81 +181,64 @@ class RandomImageCropper():
     NUM_IMAGES_ABOVE_MAX_THRESHOLD = 2
 
     def __init__(self):
-        self.total_objects_ratio = 0
-        self.total_objects_num = 0
+        pass
 
-    def crop_image_randomly(self, image, image_name, image_mask, croppped_images_quantity):
+    def crop_image_randomly(self, image_name: str, image: np.ndarray, image_mask: np.ndarray,
+                            croppped_images_quantity: int) -> List[SourceAndMaskImagesDto]:
         x = len(image)
         y = len(image[0])
 
         images_bellow_min_threshold = 0
         images_above_max_threshold = 0
 
-        coords_set = set()
+        cropped_images_list: List[SourceAndMaskImagesDto] = []
+        used_coordinates_set: Set[Tuple[int, int]] = set()
 
         for i in range(croppped_images_quantity):
-            x_start = random.randint(1, x - (IMAGE_SIZE + 2))
-            y_start = random.randint(1, y - (IMAGE_SIZE + 2))
-            if (x_start, y_start) in coords_set:
+
+            image_coordinates = self.__get_image_coordinates(x, y, used_coordinates_set)
+            if image_coordinates is None:
                 continue
 
-            coords_set.add((x_start, y_start))
-            x_end = x_start + IMAGE_SIZE
-            y_end = y_start + IMAGE_SIZE
+            used_coordinates_set.add((image_coordinates.x_start, image_coordinates.y_start))
 
-            image_coordinates = ImageCoordinates(x_start, x_end, y_start, y_end)
-
-            cropped_mask = image_mask[x_start:x_end, y_start:y_end]
+            cropped_mask = self.__crop_image(image_mask, image_coordinates)
             objects_area = np.sum(cropped_mask[:, :])
             objects_ratio = objects_area / (IMAGE_SIZE ** 2)
 
             if objects_ratio > self.MIN_SAVE_IMG_THRESHOLD and objects_ratio < self.MAX_SAVE_IMG_THRESHOLD:
-                self.__crop_image(image, image_coordinates, objects_ratio)
+                new_image = self.__crop_image(image, image_coordinates)
 
             elif objects_ratio < self.MIN_SAVE_IMG_THRESHOLD and images_bellow_min_threshold < self.NUM_IMAGES_BELLOW_MIN_THRESHOLD:
-                self.__crop_image(image, image_coordinates, objects_ratio)
-
+                new_image = self.__crop_image(image, image_coordinates)
                 images_bellow_min_threshold += 1
 
             elif objects_ratio > self.MAX_SAVE_IMG_THRESHOLD and images_above_max_threshold < self.NUM_IMAGES_ABOVE_MAX_THRESHOLD:
-                self.__crop_image(image, image_coordinates, objects_ratio)
-
+                new_image = self.__crop_image(image, image_coordinates)
                 images_above_max_threshold += 1
 
-    def __crop_image(self, image, image_coordinates, objects_ratio):
-        self.total_objects_num += 1
-        self.total_objects_ratio += objects_ratio
-        cropped_img = image[image_coordinates.x_start:image_coordinates.x_end, image_coordinates.y_start:image_coordinates.y_end]
-        return cropped_img
+            if new_image is not None:
+                source_dto = ImageDto(image_name, image)
+                mask_dto = ImageDto(image_name, image)
+                sample = SourceAndMaskImagesDto(source_dto, mask_dto)
+                cropped_images_list.append(sample)
 
+        return cropped_images_list
 
+    def __get_image_coordinates(self, x: int, y: int, coords_set: Set[Tuple[int, int]]) -> ImageCoordinates:
+        x_start = random.randint(1, x - (IMAGE_SIZE + 2))
+        y_start = random.randint(1, y - (IMAGE_SIZE + 2))
+        x_end = x_start + IMAGE_SIZE
+        y_end = y_start + IMAGE_SIZE
 
+        image_coordinates = None
+        if self.__is_this_part_cropped_before(coords_set, x_start, y_start) is False:
+            image_coordinates = ImageCoordinates(x_start, x_end, y_start, y_end)
+        return image_coordinates
 
-class ImageAugumentator():
+    def __is_this_part_cropped_before(self, coords_set: Set[Tuple[int, int]], x_start: int, y_start: int) -> bool:
+        return (x_start, y_start) in coords_set
 
-    def __init__(self):
-        self.rotations_angles_switcher = {
-            0: 0,
-            90: 1,
-            180: 2,
-            270: 3
-        }
-
-    def rotate(self, image, angle):
-        rotation_num = self.rotations_angles_switcher.get(angle)
-
-        rotated_image = np.rot90(image, rotation_num)
-        return rotated_image
-
-    def flip(self, image):
-        flipped_image = np.flip(image, 0)
-        return flipped_image
-
-
-class LocalImageUploader():
-
-    def save(self, image, directory, image_name):
-
-        img_name = directory + image_name
-
-        tiff.imsave(img_name, image)
+    def __crop_image(self, image: np.ndarray, image_coordinates: ImageCoordinates) -> np.ndarray:
+        return image[image_coordinates.x_start:image_coordinates.x_end,
+               image_coordinates.y_start:image_coordinates.y_end]
