@@ -2,16 +2,39 @@ import os
 import shutil
 
 import math
+from typing import List
+
+import numpy
 from PIL import Image
 
 import numpy as np
 import tifffile as tiff
 import matplotlib.pyplot as plt
-from app.config.main_config import PREDICTION_IMAGE_SIZE, IMAGE_SIZE, IMAGE_FORMAT
+from keras import Model
+
+from app.config.main_config import PREDICTION_IMAGE_SIZE, IMAGE_SIZE, IMAGE_FORMAT, TEST_INPUT_DATA_PATH, \
+    TEST_OUTPUT_DATA_PATH
 from app.net.neuralnetwork import NeuralNetwork
-from app.preparation.img_cropper import ImagesCropper
+from app.preparation.img_cropper import SequentialImageCropper
 import cv2
 
+
+class DatasetPredictor(object):
+
+    def __init__(self, prediction_weights: List[str], model: Model):
+        self.predictor = ImagePredictor(prediction_weights, model)
+
+    def predictInriaAerialDataset(self,
+                                  data_input_path: str = TEST_INPUT_DATA_PATH,
+                                  data_output_path: str = TEST_OUTPUT_DATA_PATH
+                                  ) -> None:
+        filenames = os.listdir(data_input_path)
+        for f in filenames:
+            tempRes = self.predictor.predict_image_mask(data_input_path + f)
+            tempRes = tempRes.reshape(len(tempRes), len(tempRes[0]))
+            tempRes = tempRes * 255
+            tempRes = tempRes.astype(numpy.uint8)
+            tiff.imsave(data_output_path + f, tempRes)
 
 
 class ImagePredictor(object):
@@ -21,7 +44,7 @@ class ImagePredictor(object):
     COLUMNS_AXIS = 1
 
     def __init__(self, prediction_weights, model):
-        self.cropper = ImagesCropper()
+        self.sequential_cropper = SequentialImageCropper()
         self.net = NeuralNetwork(model)
         self.prediction_weights = prediction_weights
 
@@ -58,7 +81,7 @@ class ImagePredictor(object):
             os.makedirs(directory)
 
         updated_image = self.__resize_image_for_prediction(image)
-        self.cropper.crop_image('img', updated_image, directory, PREDICTION_IMAGE_SIZE)
+        self.sequential_cropper.crop('img', updated_image, directory, PREDICTION_IMAGE_SIZE)
 
         dataset = self.__get_dataset(updated_image, directory, shift_step=PREDICTION_IMAGE_SIZE)
         self.net.x_test = np.array(dataset, np.float32)
