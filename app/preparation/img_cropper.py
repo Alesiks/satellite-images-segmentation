@@ -6,7 +6,7 @@ import numpy as np
 import tifffile as tiff
 
 from app.config.main_config import IMAGE_SIZE, IMAGE_FORMAT, ROTATION_ANGLE_STEP
-from app.entity.entities import ImageDto, ImageCoordinates, SourceAndMaskImagesDto
+from app.domain.img_models import ImageDto, ImageCoordinates, SourceAndMaskImagesDto
 
 csv.field_size_limit(13107200);
 
@@ -183,8 +183,11 @@ class RandomImageCropper():
     def __init__(self):
         pass
 
-    def crop_image_randomly(self, image_name: str, image: np.ndarray, image_mask: np.ndarray,
-                            croppped_images_quantity: int) -> List[SourceAndMaskImagesDto]:
+    def crop(self,
+             image_name: str,
+             image: np.ndarray,
+             image_mask: np.ndarray,
+             croppped_images_quantity: int) -> List[SourceAndMaskImagesDto]:
         x = len(image)
         y = len(image[0])
 
@@ -218,8 +221,9 @@ class RandomImageCropper():
                 images_above_max_threshold += 1
 
             if new_image is not None:
-                source_dto = ImageDto(image_name, image)
-                mask_dto = ImageDto(image_name, image)
+                new_image_name = self.__update_image_name_after_crop(image_name, image_coordinates)
+                source_dto = ImageDto(new_image_name, new_image)
+                mask_dto = ImageDto(new_image_name, cropped_mask)
                 sample = SourceAndMaskImagesDto(source_dto, mask_dto)
                 cropped_images_list.append(sample)
 
@@ -242,3 +246,7 @@ class RandomImageCropper():
     def __crop_image(self, image: np.ndarray, image_coordinates: ImageCoordinates) -> np.ndarray:
         return image[image_coordinates.x_start:image_coordinates.x_end,
                image_coordinates.y_start:image_coordinates.y_end]
+
+    def __update_image_name_after_crop(self, image_name: str, image_coordinates: ImageCoordinates) -> str:
+        new_image_name = "{}_x={},y={}".format(image_name, image_coordinates.x_start, image_coordinates.y_start)
+        return new_image_name
