@@ -7,34 +7,80 @@ import gdal
 import numpy as np
 import shapely
 import shapely.wkt
+
 import tifffile as tiff
-import matplotlib.pyplot as plt
 
 
 from app.config.main_config import BUILDINGS_DATA_PATH, IMAGE_FORMAT, BUILDINGS_MASK_DATA_PATH, \
     VALIDATION_INPUT_DATA_PATH, TRAIN_INPUT_DATA_PATH, TRAIN_POLYGONS_PATH, GRID_SIZES_PATH, \
     VALIDATION_OUTPUT_DATA_PATH, TRAIN_OUTPUT_DATA_PATH
-from app.preparation.img_cropper import ImagesCropper
+from app.domain.img_augumentations import ImageRotationService, ImageFlipService
+from app.domain.img_models import DatasetPreparationSettings
+from app.domain.img_uploadings import LocalImageSaveService
+from app.preparation.img_cropper import RandomImageCropper
 
 
-class ImagesPreparer(object):
-    TRAIN_IMAGES_TO_VALIDATION_RATIO = 7
+class InriaDatasetPreparer():
 
-    def __init__(self, object_type=1, samples_path=BUILDINGS_DATA_PATH, geojson_path=BUILDINGS_MASK_DATA_PATH):
-        self.object_type = object_type
-        self.samples_path = samples_path
-        self.filenames = os.listdir(samples_path)
-        self.samples_geojson_path = geojson_path
-        self.cropper = ImagesCropper()
+    def __init__(self,
+                 data_path: str,
+                 ground_truth_data_path: str,
+                 train_dataset_path: str,
+                 validation_dataset_path: str,
+                 dataset_settings: DatasetPreparationSettings):
+        self.data_path = data_path
+        self.ground_truth_data_path = ground_truth_data_path
+        self.train_dataset_path = train_dataset_path
+        self.validation_dataset_path = validation_dataset_path
+        self.dataset_settings = dataset_settings
 
+        self.image_cropper = RandomImageCropper()
+        self.image_rotator = ImageRotationService()
+        self.image_flipper = ImageFlipService()
+        self.image_saver = LocalImageSaveService()
+
+    def prepare_dataset_for_training(self) -> None:
+        self.__create_directory_for_masks_images(self.train_dataset_path)
+        filenames = os.listdir(self.data_path)
+
+        for f in filenames:
+            if f.endswith(IMAGE_FORMAT):
+                image_id = f[:-4]
+                original_image = tiff.imread((self.data_path + '{}' + IMAGE_FORMAT).format(image_id))
+                image_mask = tiff.imread((self.ground_truth_data_path + '{}' + IMAGE_FORMAT).format(image_id)) / 255
+
+                cropped_images_list = self.image_cropper.crop(image_id, original_image, image_mask,
+                                                              self.dataset_settings.segments_num_for_each_image)
+                if self.dataset_settings.flip is True:
+                    flipped_images = self.image_flipper.flip_list(cropped_images_list)
+                    cropped_images_list.extend(flipped_images)
+
+                if self.dataset_settings.rotate > 0:
+                    rotated_images = self.image_rotator.rotate_list(cropped_images_list, self.dataset_settings.rotate)
+                    cropped_images_list.extend(rotated_images)
+
+            for source_and_mask in cropped_images_list:
+                self.image_saver.save(source_and_mask.source, self.train_dataset_path)
+                self.image_saver.save(source_and_mask.mask, self.train_dataset_path + "mask\\")
+
+    def __create_directory_for_masks_images(self, train_directory: str) -> None:
+        mask_directory_path = train_directory + "mask\\"
+        if not os.path.exists(mask_directory_path):
+            os.makedirs(mask_directory_path)
+
+
+
+# todo rewrite class to work in new object domain
+class ChineseDatasetPreparer():
     def create_data_chinese_images(self, data_set_size, is_validation=False):
         num_images_added_to_train_set = 0
         for f in self.filenames:
             if f.endswith(IMAGE_FORMAT):
                 image_id = f[:-4]
                 original_image = tiff.imread((self.samples_path + '{}' + IMAGE_FORMAT).format(image_id))
-                image_mask = self.get_mask_for_chinese_images((self.samples_path + '{}' + IMAGE_FORMAT).format(image_id),
-                                                         (self.samples_geojson_path + '{}' + ".geojson").format(image_id))
+                image_mask = self.get_mask_for_chinese_images(
+                    (self.samples_path + '{}' + IMAGE_FORMAT).format(image_id),
+                    (self.samples_geojson_path + '{}' + ".geojson").format(image_id))
 
                 if is_validation and num_images_added_to_train_set == self.TRAIN_IMAGES_TO_VALIDATION_RATIO:
                     num_images_added_to_train_set = 0
@@ -47,7 +93,6 @@ class ImagesPreparer(object):
                                                      TRAIN_OUTPUT_DATA_PATH,
                                                      data_set_size, 90, make_flip=True)
                     num_images_added_to_train_set += 1
-
 
     def get_mask_for_chinese_images(self, image_path, image_geojson_path):
         ds = gdal.Open(image_path)
@@ -82,7 +127,6 @@ class ImagesPreparer(object):
         # plt.show()
         return mask
 
-
     def __get_mask(self, shape, point, xMin, yMin, xMax, yMax):
         w, h = shape
 
@@ -99,30 +143,9 @@ class ImagesPreparer(object):
 
         return np.concatenate([xp[:, None], yp[:, None]], axis=1)
 
-
-    def create_data_inria_aerial_images(self, data_set_size, is_validation=False):
-        num_images_added_to_train_set = 0
-        for f in self.filenames:
-            if f.endswith(IMAGE_FORMAT):
-                image_id = f[:-4]
-                original_image = tiff.imread((BUILDINGS_DATA_PATH + '{}' + IMAGE_FORMAT).format(image_id))
-                image_mask = tiff.imread((BUILDINGS_MASK_DATA_PATH + '{}' + IMAGE_FORMAT).format(image_id)) / 255
-                if is_validation and num_images_added_to_train_set == self.TRAIN_IMAGES_TO_VALIDATION_RATIO:
-                    num_images_added_to_train_set = 0
-                    self.cropper.crop_image_randomly(image_id, original_image, image_mask, VALIDATION_INPUT_DATA_PATH,
-                                                     VALIDATION_OUTPUT_DATA_PATH,
-                                                     data_set_size, 180)
-                else:
-                    self.cropper.crop_image_randomly(image_id, original_image, image_mask, TRAIN_INPUT_DATA_PATH,
-                                                     TRAIN_OUTPUT_DATA_PATH,
-                                                     data_set_size, 180)
-            num_images_added_to_train_set += 1
-
-        # print(self.cropper.total_objects_ratio)
-
-    # code below is used for preparing data from kaggle contest (Dstl Satellite Imagery Feature Detection)
-    # the code below mostly was taken from competitors of Dstl contest
-    def create_data_dstl(self, data_set_size, is_validation=False):
+# todo rewrite class to work in new object domain
+class DSTLDatasetPreparer():
+    def prepare_dataset_for_training(self, data_set_size, is_validation=False):
         for f in self.filenames:
             if f.endswith(IMAGE_FORMAT):
                 image_id = f[:-4]
@@ -164,7 +187,8 @@ class ImagesPreparer(object):
                 train_polygons = shapely.wkt.loads(_poly)
                 return train_polygons
 
-    # build image mask by polygons
+                # build image mask by polygons
+
     def __mask_for_polygons(self, polygons, image_size):
         img_mask = np.zeros(image_size, np.uint8)
         if not polygons:
@@ -176,4 +200,10 @@ class ImagesPreparer(object):
         cv2.fillPoly(img_mask, exteriors, 1)
         cv2.fillPoly(img_mask, interiors, 0)
         return img_mask
+
+
+
+
+
+
 

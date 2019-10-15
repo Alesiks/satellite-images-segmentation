@@ -2,16 +2,38 @@ import os
 import shutil
 
 import math
+from typing import List
+
+import numpy
 from PIL import Image
 
 import numpy as np
 import tifffile as tiff
 import matplotlib.pyplot as plt
-from app.config.main_config import PREDICTION_IMAGE_SIZE, IMAGE_SIZE, IMAGE_FORMAT
+from keras import Model
+
+from app.config.main_config import PREDICTION_IMAGE_SIZE, IMAGE_SIZE, IMAGE_FORMAT, TEST_INPUT_DATA_PATH, \
+    TEST_OUTPUT_DATA_PATH
 from app.net.neuralnetwork import NeuralNetwork
-from app.preparation.img_cropper import ImagesCropper
+from app.preparation.img_cropper import SequentialImageCropper
 import cv2
 
+
+class DatasetPredictor(object):
+    def __init__(self, prediction_weights: List[str], model: Model):
+        self.predictor = ImagePredictor(prediction_weights, model)
+
+    def predictInriaAerialDataset(self,
+                                  data_input_path: str = TEST_INPUT_DATA_PATH,
+                                  data_output_path: str = TEST_OUTPUT_DATA_PATH
+                                  ) -> None:
+        filenames = os.listdir(data_input_path)
+        for f in filenames:
+            tempRes = self.predictor.predict_image_mask(data_input_path + f)
+            tempRes = tempRes.reshape(len(tempRes), len(tempRes[0]))
+            tempRes = tempRes * 255
+            tempRes = tempRes.astype(numpy.uint8)
+            tiff.imsave(data_output_path + f, tempRes)
 
 
 class ImagePredictor(object):
@@ -20,14 +42,14 @@ class ImagePredictor(object):
     # running horizontally across columns
     COLUMNS_AXIS = 1
 
-    def __init__(self, prediction_weights, model):
-        self.cropper = ImagesCropper()
+    def __init__(self, prediction_weights: List[str], model: Model):
+        self.sequential_cropper = SequentialImageCropper()
         self.net = NeuralNetwork(model)
         self.prediction_weights = prediction_weights
 
     # predict image mask according predictions of image and rotated image
-    def predict_image_mask_tta(self, image_path):
-        image = tiff.imread(image_path)#.transpose([1, 2, 0])
+    def predict_image_mask_tta(self, image_path: str) -> None:
+        image = tiff.imread(image_path)  # .transpose([1, 2, 0])
         res_img = self.__predict(image)
 
         rot_img = np.rot90(image, 1)
@@ -42,8 +64,8 @@ class ImagePredictor(object):
         # plt.show()
         return newar
 
-    def predict_image_mask(self, image_path):
-        image = tiff.imread(image_path)#.transpose([1, 2, 0])
+    def predict_image_mask(self, image_path: str) -> None:
+        image = tiff.imread(image_path)  # .transpose([1, 2, 0])
         # image = cv2.imread(image_path)
         res_img = self.__predict(image)
 
@@ -52,13 +74,13 @@ class ImagePredictor(object):
         return res_img
 
     # predicts mask for image according given prediction_weights
-    def __predict(self, image):
+    def __predict(self, image: np.ndarray) -> np.ndarray:
         directory = "../tempdata/"
         if not os.path.exists(directory):
             os.makedirs(directory)
 
         updated_image = self.__resize_image_for_prediction(image)
-        self.cropper.crop_image('img', updated_image, directory, PREDICTION_IMAGE_SIZE)
+        self.sequential_cropper.crop('img', updated_image, directory, PREDICTION_IMAGE_SIZE)
 
         dataset = self.__get_dataset(updated_image, directory, shift_step=PREDICTION_IMAGE_SIZE)
         self.net.x_test = np.array(dataset, np.float32)
@@ -67,14 +89,13 @@ class ImagePredictor(object):
         for weights in self.prediction_weights:
             image_prediction = self.net.test_network(weights)
             res = self.__concat_predictions(updated_image, image_prediction, shift_step=PREDICTION_IMAGE_SIZE)
-            start_coord_x = (res.shape[0]-image.shape[0]) // 2
+            start_coord_x = (res.shape[0] - image.shape[0]) // 2
             end_coord_x = res.shape[0] - start_coord_x
-            start_coord_y = (res.shape[1]-image.shape[1]) // 2
+            start_coord_y = (res.shape[1] - image.shape[1]) // 2
             end_coord_y = res.shape[1] - start_coord_y
 
-            res = res[start_coord_x:end_coord_x,start_coord_y:end_coord_y]
+            res = res[start_coord_x:end_coord_x, start_coord_y:end_coord_y]
             predictions.append(res)
-
 
         newres = np.zeros(res.shape)
         for image_prediction in predictions:
@@ -86,12 +107,12 @@ class ImagePredictor(object):
     # resizes image for future it splitting into images with PREDICTION_IMAGE_SIZE
     # for image is added frame, after predictions this frame disappear
     # frame consists of flipped image border parts
-    def __resize_image_for_prediction(self, image):
+    def __resize_image_for_prediction(self, image: np.ndarray) -> np.ndarray:
         new_img = self.__concatenate_by_axis(image, self.ROWS_AXIS)
         new_img = self.__concatenate_by_axis(new_img, self.COLUMNS_AXIS)
         return new_img
 
-    def __concatenate_by_axis(self, image, axis):
+    def __concatenate_by_axis(self, image: np.ndarray, axis: int) -> np.ndarray:
         axis_len = image.shape[axis]
         updated_axis_len = self.__get_updated__axis_length(axis_len)
 
@@ -102,13 +123,18 @@ class ImagePredictor(object):
         new_img = np.concatenate((flipped_part, new_img), axis)
         return new_img
 
-    def __get_updated__axis_length(self, axis_len):
+    def __get_updated__axis_length(self, axis_len: int) -> int:
         updated_len = (axis_len // PREDICTION_IMAGE_SIZE) + 1
         updated_len *= PREDICTION_IMAGE_SIZE
         updated_len += IMAGE_SIZE - PREDICTION_IMAGE_SIZE
         return updated_len
 
-    def __get_flip_part_img_top(self, len, updated_len, image, axis):
+    def __get_flip_part_img_top(self,
+                                len: int,
+                                updated_len: int,
+                                image: np.ndarray,
+                                axis: int
+                                ) -> np.ndarray:
         flip_part_len = len - (updated_len - len) // 2
         if axis == self.ROWS_AXIS:
             flipped_part = np.flip(image[flip_part_len:len, :], axis)
@@ -116,7 +142,12 @@ class ImagePredictor(object):
             flipped_part = np.flip(image[:, flip_part_len:len], axis)
         return flipped_part
 
-    def __get_flip_part_img_bottom(self, len, updated_len, image, axis):
+    def __get_flip_part_img_bottom(self,
+                                   len: int,
+                                   updated_len: int,
+                                   image: np.ndarray,
+                                   axis: int
+                                   ) -> np.ndarray:
         diff = math.ceil((updated_len - len) / 2)
         if axis == self.ROWS_AXIS:
             flipped_part = np.flip(image[0:diff, :], axis)
@@ -124,7 +155,11 @@ class ImagePredictor(object):
             flipped_part = np.flip(image[:, 0:diff], axis)
         return flipped_part
 
-    def __get_dataset(self, image, directory, shift_step=IMAGE_SIZE):
+    def __get_dataset(self,
+                      image: np.ndarray,
+                      directory: str,
+                      shift_step: int = IMAGE_SIZE
+                      ) -> List[np.ndarray]:
         width = image.shape[1]
         height = image.shape[0]
         dataset = []
@@ -138,7 +173,11 @@ class ImagePredictor(object):
             y_border += shift_step
         return dataset
 
-    def __concat_predictions(self, image, predictions, shift_step=IMAGE_SIZE):
+    def __concat_predictions(self,
+                             image: np.ndarray,
+                             predictions: np.ndarray,
+                             shift_step: int = IMAGE_SIZE
+                             ) -> np.ndarray:
         width = image.shape[1]
         height = image.shape[0]
         full_image = []
@@ -161,7 +200,7 @@ class ImagePredictor(object):
         res = np.concatenate(full_image, axis=0)
         return res
 
-    def __concat_images(self, image, directory):
+    def __concat_images(self, image: np.ndarray, directory: str) -> np.ndarray:
         x_len = image.shape[1]
         y_len = image.shape[0]
         full_image = []
