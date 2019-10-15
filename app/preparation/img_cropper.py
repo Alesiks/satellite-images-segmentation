@@ -10,6 +10,7 @@ from app.domain.img_models import ImageDto, ImageCoordinates, SourceAndMaskImage
 
 csv.field_size_limit(13107200);
 
+
 class SequentialImageCropper():
     # running vertically downwards across rows
     ROWS_AXIS = 0
@@ -19,7 +20,12 @@ class SequentialImageCropper():
     def __init__(self):
         pass
 
-    def crop(self, image_name, image, cropped_images_folder_path, shift_step=IMAGE_SIZE):
+    def crop(self,
+             image_name: str,
+             image: np.ndarray,
+             cropped_images_folder_path: str,
+             shift_step: int = IMAGE_SIZE
+             ) -> None:
         x = 0
         width = image.shape[self.COLUMNS_AXIS]
         height = image.shape[self.ROWS_AXIS]
@@ -36,6 +42,7 @@ class SequentialImageCropper():
                             image[y_start:y_end, x_start:x_end])
                 y += shift_step
             x += shift_step
+
 
 class RandomImageCropper():
     MIN_SAVE_IMG_THRESHOLD = 0.11
