@@ -25,4 +25,4 @@ six==1.11.0
 tensorflow-gpu==1.4.0
 tensorflow-tensorboard==0.4.0rc2
 tifffile==2017.9.29
-Werkzeug==0.12.2
+Werkzeug==0.15.3
