@@ -22,7 +22,7 @@ PyYAML==3.12
 scipy==1.0.0
 Shapely==1.6.3
 six==1.11.0
-tensorflow-gpu==1.4.0
+tensorflow-gpu==1.15.0
 tensorflow-tensorboard==0.4.0rc2
 tifffile==2017.9.29
 Werkzeug==0.12.2
