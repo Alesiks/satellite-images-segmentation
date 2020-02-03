@@ -1,11 +1,10 @@
 import os
-import random
 
 import tifffile as tiff
-from keras import Input, Model, callbacks
-from keras.callbacks import LearningRateScheduler
-from keras.layers import MaxPooling2D, np, Convolution2D, UpSampling2D, concatenate, BatchNormalization, K
-from keras.optimizers import Adam
+import numpy as np
+from tensorflow.keras.callbacks import LearningRateScheduler
+from tensorflow.keras import callbacks
+from tensorflow.keras import backend as K
 from sklearn.model_selection import KFold
 import matplotlib.pyplot as plt
 

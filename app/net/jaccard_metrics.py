@@ -1,5 +1,5 @@
-from keras.layers import K
-from keras.backend import binary_crossentropy
+from tensorflow.keras import backend as K
+from tensorflow.keras.backend import binary_crossentropy
 
 smooth = 1e-12
 

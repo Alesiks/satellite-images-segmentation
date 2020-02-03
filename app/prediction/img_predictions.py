@@ -5,18 +5,15 @@ import math
 from typing import List
 
 import numpy
-from PIL import Image
 
 import numpy as np
 import tifffile as tiff
-import matplotlib.pyplot as plt
-from keras import Model
+from tensorflow.keras import Model
 
 from app.config.main_config import PREDICTION_IMAGE_SIZE, IMAGE_SIZE, IMAGE_FORMAT, TEST_INPUT_DATA_PATH, \
     TEST_OUTPUT_DATA_PATH
 from app.net.neuralnetwork import NeuralNetwork
 from app.preparation.img_cropper import SequentialImageCropper
-import cv2
 
 
 class DatasetPredictor(object):

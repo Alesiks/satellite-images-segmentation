@@ -1,7 +1,7 @@
-from keras import Input, Model, layers
-from keras.layers import Convolution2D, BatchNormalization, MaxPooling2D, concatenate, UpSampling2D
-from keras.optimizers import Adam
-from keras.utils import plot_model
+from tensorflow.keras import Input, Model, layers
+from tensorflow.keras.layers import Convolution2D, BatchNormalization, MaxPooling2D, concatenate, UpSampling2D
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.utils import plot_model
 
 from app.config.main_config import IMAGE_SIZE
 from app.net.jaccard_metrics import jaccard_coef, jaccard_coef_int, jaccard_coef_loss

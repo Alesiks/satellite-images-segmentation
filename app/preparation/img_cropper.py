@@ -122,3 +122,4 @@ class RandomImageCropper():
     def __update_image_name_after_crop(self, image_name: str, image_coordinates: ImageCoordinates) -> str:
         new_image_name = "{}_x={},y={}".format(image_name, image_coordinates.x_start, image_coordinates.y_start)
         return new_image_name
+
