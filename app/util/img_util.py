@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from app.config.main_config import BUILDINGS_MASK_DATA_PATH, IMAGE_FORMAT, TRAIN_OUTPUT_DATA_PATH
 
 
-class ImageDiscoverUtil(object):
+class ImagesUtil(object):
 
     def __init__(self):
         pass
@@ -31,7 +31,7 @@ class ImageDiscoverUtil(object):
                     dictionary[buildings_area] += 1
 
         od = collections.OrderedDict(sorted(dictionary.items()))
-        plt.plot(od.keys(), od.values(), 'ro')
+        plt.plot(list(od.keys()), list(od.values()), 'ro')
         plt.xticks(np.arange(min(od.keys()), max(od.keys()) + 1, 2))
         plt.yticks(np.arange(min(od.values()), max(od.values()) + 1, int((max(od.values())-min(od.values())) / 40)))
         # plt.figure(figsize=(1280/120, 960/120), dpi=120)
@@ -39,9 +39,9 @@ class ImageDiscoverUtil(object):
 
 
 
-np.set_printoptions(threshold=np.nan)
+# np.set_printoptions(threshold=np.nan)
 
-imageUtil = ImageDiscoverUtil()
+imageUtil = ImagesUtil()
 # imageUtil.get_buildings_distribution()
 
 imageUtil.get_buildings_distribution(images_mask_path=TRAIN_OUTPUT_DATA_PATH)

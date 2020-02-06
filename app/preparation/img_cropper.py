@@ -20,12 +20,13 @@ class SequentialImageCropper():
     def __init__(self):
         pass
 
-    def crop(self,
-             image_name: str,
-             image: np.ndarray,
-             cropped_images_folder_path: str,
-             shift_step: int = IMAGE_SIZE
-             ) -> None:
+    def crop(
+            self,
+            image_name: str,
+            image: np.ndarray,
+            cropped_images_folder_path: str,
+            shift_step: int = IMAGE_SIZE
+    ) -> None:
         x = 0
         width = image.shape[self.COLUMNS_AXIS]
         height = image.shape[self.ROWS_AXIS]
@@ -54,12 +55,13 @@ class RandomImageCropper():
     def __init__(self):
         pass
 
-    def crop(self,
-             image_name: str,
-             image: np.ndarray,
-             image_mask: np.ndarray,
-             croppped_images_quantity: int
-             ) -> List[SourceAndMaskImagesDto]:
+    def crop(
+            self,
+            image_name: str,
+            image: np.ndarray,
+            image_mask: np.ndarray,
+            cropped_images_quantity: int
+    ) -> List[SourceAndMaskImagesDto]:
         x = len(image)
         y = len(image[0])
 
@@ -69,7 +71,7 @@ class RandomImageCropper():
         cropped_images_list: List[SourceAndMaskImagesDto] = []
         used_coordinates_set: Set[Tuple[int, int]] = set()
 
-        for i in range(croppped_images_quantity):
+        for i in range(cropped_images_quantity):
 
             image_coordinates = self.__get_image_coordinates(x, y, used_coordinates_set)
             if image_coordinates is None:
@@ -80,6 +82,8 @@ class RandomImageCropper():
             cropped_mask = self.__crop_image(image_mask, image_coordinates)
             objects_area = np.sum(cropped_mask[:, :])
             objects_ratio = objects_area / (IMAGE_SIZE ** 2)
+
+            new_image = None
 
             if objects_ratio > self.MIN_SAVE_IMG_THRESHOLD and objects_ratio < self.MAX_SAVE_IMG_THRESHOLD:
                 new_image = self.__crop_image(image, image_coordinates)
