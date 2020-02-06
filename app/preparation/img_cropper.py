@@ -1,14 +1,11 @@
-import csv
 import random
-from typing import List, Set, Tuple, Any
+from typing import List, Set, Tuple
 
 import numpy as np
 import tifffile as tiff
 
-from app.config.main_config import IMAGE_SIZE, IMAGE_FORMAT, ROTATION_ANGLE_STEP
+from app.config.main_config import IMAGE_SIZE, IMAGE_FORMAT
 from app.domain.img_models import ImageDto, ImageCoordinates, SourceAndMaskImagesDto
-
-csv.field_size_limit(13107200);
 
 
 class SequentialImageCropper():

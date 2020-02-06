@@ -4,15 +4,12 @@ import shutil
 import math
 from typing import List
 
-import numpy
-
 import numpy as np
 import tifffile as tiff
 from tensorflow.keras import Model
 
 from app.config.main_config import PREDICTION_IMAGE_SIZE, IMAGE_SIZE, IMAGE_FORMAT, TEST_INPUT_DATA_PATH, \
     TEST_OUTPUT_DATA_PATH
-from app.net.neuralnetwork import NeuralNetwork
 from app.preparation.img_cropper import SequentialImageCropper
 
 
@@ -20,16 +17,17 @@ class DatasetPredictor(object):
     def __init__(self, prediction_weights: List[str], model: Model):
         self.predictor = ImagePredictor(prediction_weights, model)
 
-    def predictInriaAerialDataset(self,
-                                  data_input_path: str = TEST_INPUT_DATA_PATH,
-                                  data_output_path: str = TEST_OUTPUT_DATA_PATH
-                                  ) -> None:
+    def predictInriaAerialDataset(
+            self,
+            data_input_path: str = TEST_INPUT_DATA_PATH,
+            data_output_path: str = TEST_OUTPUT_DATA_PATH
+    ) -> None:
         filenames = os.listdir(data_input_path)
         for f in filenames:
             tempRes = self.predictor.predict_image_mask(data_input_path + f)
             tempRes = tempRes.reshape(len(tempRes), len(tempRes[0]))
             tempRes = tempRes * 255
-            tempRes = tempRes.astype(numpy.uint8)
+            tempRes = tempRes.astype(np.uint8)
             tiff.imsave(data_output_path + f, tempRes)
 
 
@@ -41,8 +39,8 @@ class ImagePredictor(object):
 
     def __init__(self, prediction_weights: List[str], model: Model):
         self.sequential_cropper = SequentialImageCropper()
-        self.net = NeuralNetwork(model)
         self.prediction_weights = prediction_weights
+        self.model = model
 
     # predict image mask according predictions of image and rotated image
     def predict_image_mask_tta(self, image_path: str) -> None:
@@ -80,11 +78,11 @@ class ImagePredictor(object):
         self.sequential_cropper.crop('img', updated_image, directory, PREDICTION_IMAGE_SIZE)
 
         dataset = self.__get_dataset(updated_image, directory, shift_step=PREDICTION_IMAGE_SIZE)
-        self.net.x_test = np.array(dataset, np.float32)
+        x_test = np.array(dataset, np.float32)
 
         predictions = []
         for weights in self.prediction_weights:
-            image_prediction = self.net.test_network(weights)
+            image_prediction = self.__get_predictions_for_model_by_weights(x_test, weights)
             res = self.__concat_predictions(updated_image, image_prediction, shift_step=PREDICTION_IMAGE_SIZE)
             start_coord_x = (res.shape[0] - image.shape[0]) // 2
             end_coord_x = res.shape[0] - start_coord_x
@@ -100,6 +98,19 @@ class ImagePredictor(object):
 
         shutil.rmtree(directory)
         return newres
+
+    def __get_predictions_for_model_by_weights(self, x_test: np.ndarray, weights: List[str]):
+        self.model.load_weights(weights)
+        predictions = self.model.predict(x_test, batch_size=10)
+        self.__convert_predictions_by_threshold(predictions, 0.6)
+        return predictions
+
+    def __convert_predictions_by_threshold(self, img, threshold):
+        for x in np.nditer(img, op_flags=['readwrite']):
+            if x > threshold:
+                x[...] = 1.0
+            else:
+                x[...] = 0.0
 
     # resizes image for future it splitting into images with PREDICTION_IMAGE_SIZE
     # for image is added frame, after predictions this frame disappear
@@ -126,12 +137,13 @@ class ImagePredictor(object):
         updated_len += IMAGE_SIZE - PREDICTION_IMAGE_SIZE
         return updated_len
 
-    def __get_flip_part_img_top(self,
-                                len: int,
-                                updated_len: int,
-                                image: np.ndarray,
-                                axis: int
-                                ) -> np.ndarray:
+    def __get_flip_part_img_top(
+            self,
+            len: int,
+            updated_len: int,
+            image: np.ndarray,
+            axis: int
+    ) -> np.ndarray:
         flip_part_len = len - (updated_len - len) // 2
         if axis == self.ROWS_AXIS:
             flipped_part = np.flip(image[flip_part_len:len, :], axis)
@@ -139,12 +151,13 @@ class ImagePredictor(object):
             flipped_part = np.flip(image[:, flip_part_len:len], axis)
         return flipped_part
 
-    def __get_flip_part_img_bottom(self,
-                                   len: int,
-                                   updated_len: int,
-                                   image: np.ndarray,
-                                   axis: int
-                                   ) -> np.ndarray:
+    def __get_flip_part_img_bottom(
+            self,
+            len: int,
+            updated_len: int,
+            image: np.ndarray,
+            axis: int
+    ) -> np.ndarray:
         diff = math.ceil((updated_len - len) / 2)
         if axis == self.ROWS_AXIS:
             flipped_part = np.flip(image[0:diff, :], axis)
@@ -152,11 +165,12 @@ class ImagePredictor(object):
             flipped_part = np.flip(image[:, 0:diff], axis)
         return flipped_part
 
-    def __get_dataset(self,
-                      image: np.ndarray,
-                      directory: str,
-                      shift_step: int = IMAGE_SIZE
-                      ) -> List[np.ndarray]:
+    def __get_dataset(
+            self,
+            image: np.ndarray,
+            directory: str,
+            shift_step: int = IMAGE_SIZE
+    ) -> List[np.ndarray]:
         width = image.shape[1]
         height = image.shape[0]
         dataset = []
@@ -170,11 +184,12 @@ class ImagePredictor(object):
             y_border += shift_step
         return dataset
 
-    def __concat_predictions(self,
-                             image: np.ndarray,
-                             predictions: np.ndarray,
-                             shift_step: int = IMAGE_SIZE
-                             ) -> np.ndarray:
+    def __concat_predictions(
+            self,
+            image: np.ndarray,
+            predictions: np.ndarray,
+            shift_step: int = IMAGE_SIZE
+    ) -> np.ndarray:
         width = image.shape[1]
         height = image.shape[0]
         full_image = []

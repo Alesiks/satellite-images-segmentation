@@ -149,17 +149,3 @@ class NeuralNetwork(object):
         # plt.show()
         plt.savefig('../data/jaccard_coef.png')
         plt.clf()
-
-
-    def test_network(self, weights):
-        self.model.load_weights(weights)
-        predictions = self.model.predict(self.x_test, batch_size=10)
-        self.convert_predictions_by_threshold(predictions, 0.6)
-        return predictions
-
-    def convert_predictions_by_threshold(self, img, threshold):
-        for x in np.nditer(img, op_flags=['readwrite']):
-            if x > threshold:
-                x[...] = 1.0
-            else:
-                x[...] = 0.0

@@ -1,5 +1,6 @@
 import collections
 import os
+from zipfile import ZipFile
 
 import numpy as np
 import tifffile as tiff
@@ -36,6 +37,17 @@ class ImagesUtil(object):
         plt.yticks(np.arange(min(od.values()), max(od.values()) + 1, int((max(od.values())-min(od.values())) / 40)))
         # plt.figure(figsize=(1280/120, 960/120), dpi=120)
         plt.savefig('../../data/data_distribution.png')
+
+
+    def copyAndUnzip(self, zip_path, unzip_path):
+        with ZipFile(zip_path, 'r') as zipObj:
+            listOfFileNames = zipObj.namelist()
+            # Iterate over the file names
+            for fileName in listOfFileNames:
+                 # Check filename endswith csv
+                if fileName.endswith('.tif'):
+                    # Extract a single file from zip
+                    zipObj.extract(fileName, unzip_path)
 
 
 
