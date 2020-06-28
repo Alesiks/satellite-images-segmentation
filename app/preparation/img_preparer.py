@@ -11,12 +11,14 @@ from app.preparation.img_cropper import RandomImageCropper
 
 class InriaDatasetPreparer():
 
-    def __init__(self,
-                 data_path: str,
-                 ground_truth_data_path: str,
-                 train_dataset_path: str,
-                 validation_dataset_path: str,
-                 dataset_settings: DatasetPreparationSettings):
+    def __init__(
+            self,
+            data_path: str,
+            ground_truth_data_path: str,
+            train_dataset_path: str,
+            validation_dataset_path: str,
+            dataset_settings: DatasetPreparationSettings
+    ):
         self.data_path = data_path
         self.ground_truth_data_path = ground_truth_data_path
         self.train_dataset_path = train_dataset_path
@@ -50,8 +52,8 @@ class InriaDatasetPreparer():
                     cropped_images_list.extend(rotated_images)
 
             for source_and_mask in cropped_images_list:
-                self.image_saver.save(source_and_mask.source, self.train_dataset_path)
-                self.image_saver.save(source_and_mask.mask, self.train_dataset_path + "mask/")
+                self.image_saver.save(source_and_mask.source, self.train_dataset_path, False)
+                self.image_saver.save(source_and_mask.mask, self.train_dataset_path + "mask/", True)
 
     def __create_directory_for_masks_images(self, train_directory: str) -> None:
         mask_directory_path = train_directory + "mask/"

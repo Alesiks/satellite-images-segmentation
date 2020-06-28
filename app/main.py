@@ -8,15 +8,14 @@ from app.net.unet import UNET
 from app.prediction.img_predictions import DatasetPredictor
 from app.preparation.img_preparer import InriaDatasetPreparer
 
-datasetSettings = DatasetPreparationSettings(flip=True, rotate=0, segments_num_for_each_image=40)
+datasetSettings = DatasetPreparationSettings(flip=False, rotate=0, segments_num_for_each_image=8)
 preparer = InriaDatasetPreparer(data_path=BUILDINGS_DATA_PATH,
                                 ground_truth_data_path=BUILDINGS_MASK_DATA_PATH,
-                                train_dataset_path=TRAIN_INPUT_DATA_PATH,
+                                train_dataset_path=VALIDATION_INPUT_DATA_PATH,
                                 validation_dataset_path=VALIDATION_INPUT_DATA_PATH,
                                 dataset_settings=datasetSettings)
-
 preparer.prepare_dataset_for_training()
-#
+
 #
 # unet = UNET()
 # net = NeuralNetwork(unet.model)
@@ -31,6 +30,6 @@ preparer.prepare_dataset_for_training()
 
 #
 # unet = UNET()
-# tester = DatasetPredictor(["../data/weights.34-1.560.hdf5"], unet.model)
+# tester = DatasetPredictor(["../data/weights.34-1.560.hdf5"], "stub")
 # tester.predictInriaAerialDataset()  # "D:\\machine learning data\\Сhinese\\data\\0.2resolution\\tif\\test\\",
-#                                     # "D:\\machine learning data\\Сhinese\\data\\0.2resolution\\tif\\res\\3\\")
+                                    # "D:\\machine learning data\\Сhinese\\data\\0.2resolution\\tif\\res\\3\\")

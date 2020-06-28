@@ -21,7 +21,7 @@ class ImagesUtil(object):
         for f in self.files:
             if f.endswith(IMAGE_FORMAT):
                 img = tiff.imread(images_mask_path + f)
-                buildings_area = np.sum(img[:, :]) #/ 255
+                buildings_area = np.sum(img[:, :]) / 255
                 buildings_area /= (img.shape[0] * img.shape[1])
                 buildings_area = round(buildings_area, 2)
                 buildings_area = (int) (buildings_area * 100)

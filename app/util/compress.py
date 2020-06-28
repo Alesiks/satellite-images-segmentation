@@ -10,8 +10,8 @@ import os
 import subprocess
 import sys
 
-input_dir = sys.argv[1]
-output_dir = sys.argv[2]
+input_dir = sys.argv[1] #'/home/ales/Downloads/res13/'
+output_dir = sys.argv[2] # '/home/ales/Downloads/res15/'
 
 for file in os.listdir(input_dir):
     if file.endswith(".tif"):
