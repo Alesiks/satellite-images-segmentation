@@ -10,7 +10,7 @@ matplotlib==2.1.0
 mpmath==1.0.0
 numpy==1.14.0
 olefile==0.44
-opencv-python==3.4.0
+opencv-python==4.2.0.32
 pandas==0.21.0
 Pillow==4.3.0
 protobuf==3.4.0
