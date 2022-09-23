@@ -13,7 +13,7 @@ olefile==0.44
 opencv-python==3.4.0
 pandas==0.21.0
 Pillow==4.3.0
-protobuf==3.4.0
+protobuf==3.18.3
 pygame==1.9.3
 pyparsing==2.2.0
 python-dateutil==2.6.1
